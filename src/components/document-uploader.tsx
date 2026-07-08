@@ -98,6 +98,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       }
 
       if (!response.ok) {
+        setUnlocked(true);
         throw new Error("공유 서류를 불러올 수 없습니다.");
       }
 
@@ -116,7 +117,6 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           ? loadError.message
           : "공유 서류를 불러올 수 없습니다.",
       );
-      setUnlocked(false);
     } finally {
       setChecking(false);
     }
@@ -133,11 +133,15 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     });
 
     if (!response.ok) {
-      setError("가족 PIN이 맞지 않습니다. 다시 입력해 주세요.");
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      setError(payload?.error ?? "가족 PIN이 맞지 않습니다. 다시 입력해 주세요.");
       return;
     }
 
     setPin("");
+    setUnlocked(true);
     await checkSession();
   }
 

@@ -3,15 +3,17 @@ import { cookies } from "next/headers";
 
 export const FAMILY_COOKIE = "family_docs_access";
 const SESSION_DAYS = 30;
+const DEFAULT_PIN = "0114";
 
 function getFamilyPin() {
-  return process.env.FAMILY_PIN ?? "0114";
+  const fromEnv = process.env.FAMILY_PIN?.trim();
+  return fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_PIN;
 }
 
 function getSessionSecret() {
   return (
-    process.env.FAMILY_SESSION_SECRET ??
-    `canada-family-trip-session-${getFamilyPin()}`
+    process.env.FAMILY_SESSION_SECRET?.trim() ||
+    `canada-again-family-session-${getFamilyPin()}`
   );
 }
 
@@ -21,8 +23,8 @@ function signValue(value: string) {
 
 export function isValidFamilyPin(pin: string) {
   const expected = getFamilyPin();
-  const incoming = Buffer.from(pin);
-  const target = Buffer.from(expected);
+  const incoming = Buffer.from(pin.trim(), "utf8");
+  const target = Buffer.from(expected, "utf8");
 
   if (incoming.length !== target.length) {
     return false;
@@ -59,8 +61,8 @@ export function verifyFamilySessionToken(token: string | undefined) {
 
   const payload = `${status}.${expiresAtText}`;
   const expected = signValue(payload);
-  const left = Buffer.from(signature);
-  const right = Buffer.from(expected);
+  const left = Buffer.from(signature, "utf8");
+  const right = Buffer.from(expected, "utf8");
 
   if (left.length !== right.length) {
     return false;

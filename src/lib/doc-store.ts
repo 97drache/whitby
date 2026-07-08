@@ -17,8 +17,14 @@ type StoredDocumentRecord = StoredDocumentMeta & {
 const META_PREFIX = "canada-family-docs";
 const LOCAL_DIR = path.join(process.cwd(), ".data", "shared-docs");
 
+const memoryStore = new Map<string, StoredDocumentRecord>();
+
 function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+function isVercelRuntime() {
+  return process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
 }
 
 async function ensureLocalDir() {
@@ -40,6 +46,16 @@ async function readBlobJson(pathname: string) {
   return JSON.parse(raw) as StoredDocumentRecord;
 }
 
+function toMeta(record: StoredDocumentRecord): StoredDocumentMeta {
+  return {
+    slotId: record.slotId,
+    name: record.name,
+    type: record.type,
+    size: record.size,
+    uploadedAt: record.uploadedAt,
+  };
+}
+
 export async function listDocuments(): Promise<StoredDocumentMeta[]> {
   if (hasBlobStorage()) {
     const result = await list({ prefix: `${META_PREFIX}/` });
@@ -50,40 +66,35 @@ export async function listDocuments(): Promise<StoredDocumentMeta[]> {
       if (!record) {
         continue;
       }
-
-      metas.push({
-        slotId: record.slotId,
-        name: record.name,
-        type: record.type,
-        size: record.size,
-        uploadedAt: record.uploadedAt,
-      });
+      metas.push(toMeta(record));
     }
 
     return metas;
   }
 
-  await ensureLocalDir();
-  const files = await readdir(LOCAL_DIR);
-  const metas: StoredDocumentMeta[] = [];
-
-  for (const file of files) {
-    if (!file.endsWith(".json")) {
-      continue;
-    }
-
-    const raw = await readFile(path.join(LOCAL_DIR, file), "utf8");
-    const record = JSON.parse(raw) as StoredDocumentRecord;
-    metas.push({
-      slotId: record.slotId,
-      name: record.name,
-      type: record.type,
-      size: record.size,
-      uploadedAt: record.uploadedAt,
-    });
+  if (isVercelRuntime()) {
+    return Array.from(memoryStore.values()).map(toMeta);
   }
 
-  return metas;
+  try {
+    await ensureLocalDir();
+    const files = await readdir(LOCAL_DIR);
+    const metas: StoredDocumentMeta[] = [];
+
+    for (const file of files) {
+      if (!file.endsWith(".json")) {
+        continue;
+      }
+
+      const raw = await readFile(path.join(LOCAL_DIR, file), "utf8");
+      const record = JSON.parse(raw) as StoredDocumentRecord;
+      metas.push(toMeta(record));
+    }
+
+    return metas;
+  } catch {
+    return [];
+  }
 }
 
 export async function getDocument(
@@ -91,6 +102,10 @@ export async function getDocument(
 ): Promise<StoredDocumentRecord | null> {
   if (hasBlobStorage()) {
     return readBlobJson(`${META_PREFIX}/${slotId}.json`);
+  }
+
+  if (isVercelRuntime()) {
+    return memoryStore.get(slotId) ?? null;
   }
 
   try {
@@ -123,25 +138,17 @@ export async function saveDocument(input: {
       allowOverwrite: true,
       contentType: "application/json",
     });
-    return {
-      slotId: record.slotId,
-      name: record.name,
-      type: record.type,
-      size: record.size,
-      uploadedAt: record.uploadedAt,
-    } satisfies StoredDocumentMeta;
+    return toMeta(record);
+  }
+
+  if (isVercelRuntime()) {
+    memoryStore.set(input.slotId, record);
+    return toMeta(record);
   }
 
   await ensureLocalDir();
   await writeFile(localPath(input.slotId), JSON.stringify(record), "utf8");
-
-  return {
-    slotId: record.slotId,
-    name: record.name,
-    type: record.type,
-    size: record.size,
-    uploadedAt: record.uploadedAt,
-  } satisfies StoredDocumentMeta;
+  return toMeta(record);
 }
 
 export async function deleteDocument(slotId: string) {
@@ -150,6 +157,11 @@ export async function deleteDocument(slotId: string) {
     if (result.blobs[0]) {
       await del(result.blobs[0].url);
     }
+    return;
+  }
+
+  if (isVercelRuntime()) {
+    memoryStore.delete(slotId);
     return;
   }
 

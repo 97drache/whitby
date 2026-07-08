@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "우리 가족 캐나다 여행",
-  description: "가족 여정, 준비 체크리스트, 여행 서류를 한곳에서 보는 페이지",
+  title: "Canada Again",
+  description: "가족 캐나다 여행 허브",
 };
 
 export default function RootLayout({
@@ -31,7 +31,7 @@ export default function RootLayout({
       <body className="min-h-full bg-slate-100 text-slate-950">
         <div className="flex min-h-screen flex-col">
           <SiteHeader />
-          <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 lg:px-8">
+          <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
             {children}
           </main>
         </div>

@@ -9,10 +9,13 @@ import {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { pin?: string };
-    const pin = body.pin?.trim() ?? "";
+    const pin = String(body.pin ?? "").trim();
 
     if (!isValidFamilyPin(pin)) {
-      return NextResponse.json({ error: "Wrong family PIN." }, { status: 401 });
+      return NextResponse.json(
+        { error: "가족 PIN이 맞지 않습니다." },
+        { status: 401 },
+      );
     }
 
     const token = createFamilySessionToken();
@@ -24,7 +27,10 @@ export async function POST(request: Request) {
     );
     return response;
   } catch {
-    return NextResponse.json({ error: "Unable to unlock documents." }, { status: 400 });
+    return NextResponse.json(
+      { error: "서류를 열 수 없습니다. 다시 시도해 주세요." },
+      { status: 400 },
+    );
   }
 }
 

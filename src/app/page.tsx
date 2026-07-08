@@ -1,196 +1,77 @@
 import Link from "next/link";
-import { SectionCard } from "@/components/section-card";
-import {
-  documents,
-  itinerary,
-  quickLinks,
-  sharedTravelDetails,
-  tripOverview,
-} from "@/data/trip-data";
+import { itinerary, sharedTravelDetails, tripOverview } from "@/data/trip-data";
 
 export default function Home() {
-  const nextTripDay = itinerary[0];
-  const readyDocuments = documents.filter((document) => document.status === "ready")
-    .length;
+  const start = itinerary[0];
+  const end = itinerary[itinerary.length - 1];
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[2rem] bg-gradient-to-br from-emerald-100 via-sky-50 to-amber-50 px-6 py-8 text-slate-900 shadow-lg shadow-emerald-100/70 sm:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
-          <div className="space-y-5">
-            <p className="text-sm font-semibold tracking-[0.18em] text-emerald-700">
+    <div className="mx-auto w-full max-w-3xl space-y-5">
+      <section className="overflow-hidden rounded-[2rem] border border-red-100 bg-white shadow-sm">
+        <div className="relative overflow-hidden bg-[#ff0000] px-5 pb-8 pt-6 text-white sm:px-7">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_35%,rgba(255,255,255,0.95)_0_14%,transparent_15%)]" />
+          <div className="absolute -right-10 top-6 h-40 w-40 rounded-full border-[18px] border-white/25" />
+          <div className="relative space-y-4">
+            <p className="text-xs font-semibold tracking-[0.24em] text-white/85">
               {tripOverview.destination}
             </p>
-            <div className="space-y-3">
-              <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-                {tripOverview.title}
-              </h2>
-              <p className="max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
-                {tripOverview.subtitle}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/prep"
-                className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
-              >
-                준비 체크리스트 보기
-              </Link>
-              <Link
-                href="/documents"
-                className="rounded-full border border-emerald-200 bg-white/70 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white"
-              >
-                서류 확인하기
-              </Link>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-            <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">여행 구간</p>
-              <p className="mt-2 text-lg font-semibold">
-                {tripOverview.travelWindow}
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">다음 핵심 일정</p>
-              <p className="mt-2 text-lg font-semibold">{nextTripDay.date}</p>
-              <p className="text-sm text-slate-600">{nextTripDay.title}</p>
-            </div>
-            <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">준비된 서류</p>
-              <p className="mt-2 text-lg font-semibold">
-                {readyDocuments}/{documents.length}
-              </p>
-              <p className="text-sm text-slate-600">가족 서류를 쉽게 열어보세요</p>
+            <h2 className="text-4xl font-semibold tracking-tight">{tripOverview.title}</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl bg-white/15 p-4 backdrop-blur-sm">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/75">시작</p>
+                <p className="mt-2 text-lg font-semibold">{start.date}</p>
+                <p className="mt-1 text-sm text-white/90">{start.title}</p>
+                <p className="mt-1 text-sm text-white/80">
+                  ICN 09:35 → YYZ 09:55
+                </p>
+              </div>
+              <div className="rounded-3xl bg-white/15 p-4 backdrop-blur-sm">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/75">끝</p>
+                <p className="mt-2 text-lg font-semibold">{end.date}</p>
+                <p className="mt-1 text-sm text-white/90">{end.title}</p>
+                <p className="mt-1 text-sm text-white/80">
+                  YYZ 12:55 → ICN 16:30 +1
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        <div className="space-y-4 px-5 py-5 sm:px-7">
+          <div className="rounded-3xl bg-slate-50 p-4">
+            <p className="text-sm text-slate-500">숙소</p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">
+              {sharedTravelDetails.stayAddress}
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl border border-slate-200 p-4">
+              <p className="text-sm text-slate-500">먼저 출발</p>
+              <p className="mt-1 font-semibold text-slate-950">Miyoung · Yiel</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 p-4">
+              <p className="text-sm text-slate-500">나중 출발</p>
+              <p className="mt-1 font-semibold text-slate-950">Yongwoon · Yireh</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Link
+              href="/itinerary"
+              className="flex-1 rounded-full bg-red-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              여정 보기
+            </Link>
+            <Link
+              href="/documents"
+              className="flex-1 rounded-full border border-red-200 bg-white px-4 py-3 text-center text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            >
+              서류 열기
+            </Link>
+          </div>
+        </div>
       </section>
-
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-        <SectionCard
-          title="가족 구성"
-          eyebrow="여행 한눈에"
-          description={tripOverview.countdownLabel}
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-3">
-              {tripOverview.family.map((member) => (
-                <div
-                  key={member.name}
-                  className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4"
-                >
-                  <p className="font-semibold text-slate-950">{member.name}</p>
-                  {member.departureGroup && (
-                    <p className="mt-1 text-xs font-semibold tracking-[0.12em] text-emerald-700">
-                      {member.departureGroup}
-                    </p>
-                  )}
-                  {member.note && (
-                    <p className="mt-1 text-sm text-slate-600">{member.note}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="space-y-3">
-              {tripOverview.highlights.map((highlight) => (
-                <div
-                  key={highlight}
-                  className="rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-950"
-                >
-                  {highlight}
-                </div>
-              ))}
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="바로가기"
-          eyebrow="자주 쓰는 링크"
-          description="여행에 바로 필요한 사이트를 빠르게 열 수 있습니다."
-        >
-          <div className="space-y-3">
-            {quickLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between rounded-2xl border border-emerald-100 p-4 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <span>{link.label}</span>
-                <span className="text-emerald-700">열기</span>
-              </a>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <SectionCard
-          title="주요 여정"
-          eyebrow="항공 일정"
-          description="먼저 출발, 나중 출발, 귀국 일정을 간단히 확인할 수 있습니다."
-        >
-          <div className="space-y-4">
-            {itinerary.map((day) => (
-              <div
-                key={day.id}
-                className="rounded-2xl border border-slate-200 p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-sky-700">{day.date}</p>
-                    <p className="text-lg font-semibold text-slate-950">
-                      {day.title}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
-                    {day.city}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  {day.summary}
-                </p>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          title="가족이 공유할 정보"
-          eyebrow="온타리오 베이스"
-          description="여행 중에 모두가 자주 보게 될 핵심 정보입니다."
-        >
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
-              <p className="text-sm font-medium text-emerald-700">숙소 주소</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">
-                {sharedTravelDetails.stayAddress}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">렌터카 번호</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">
-                {sharedTravelDetails.rentalCarNumber}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">캐나다 유심 번호</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">
-                {sharedTravelDetails.canadaPhoneNumber}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">귀국 계획</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">
-                {sharedTravelDetails.returnPlan}
-              </p>
-            </div>
-          </div>
-        </SectionCard>
-      </div>
     </div>
   );
 }
