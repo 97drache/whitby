@@ -2,19 +2,40 @@
 
 A small family travel hub built with `Next.js`, `TypeScript`, and `Tailwind CSS`.
 
-## Included in this starter
+## Included
 
 - Overview dashboard for the trip
 - Day-by-day itinerary page
 - Pre-departure checklist with browser-local progress saving
-- Travel document organizer page with browser-local file storage
+- Documents page locked by a family PIN
+- Shared eTA / eTicket uploads for Yongwoon, Miyoung, Yireh, and Yiel
 - Local info and emergency notes page
+
+## Family documents security
+
+- The Documents page asks for the family PIN before anything is shown
+- Family PIN default is `0114`
+- After unlock, uploaded files are shared with every family member who enters the same PIN
+- Visitors without the PIN cannot view or download the documents
+- On Vercel, files should be stored in private Blob storage (`BLOB_READ_WRITE_TOKEN`)
+- In local development, files are saved under `.data/shared-docs` (gitignored)
+
+## Environment variables
+
+Set these in Vercel Project Settings -> Environment Variables:
+
+```bash
+FAMILY_PIN=0114
+FAMILY_SESSION_SECRET=any-long-random-string
+BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+```
 
 ## Project structure
 
-- `src/app/` - route pages
+- `src/app/` - route pages and API routes
 - `src/components/` - reusable UI
 - `src/data/trip-data.ts` - trip content you can customize
+- `src/lib/` - family auth and document storage helpers
 
 ## Run locally
 
@@ -32,15 +53,8 @@ Update these sections in `src/data/trip-data.ts`:
 - `tripOverview` for destination, dates, and family members
 - `itinerary` for daily schedule and reservation references
 - `checklist` for family prep items
-- `documents` for file links, booking confirmations, and status
+- `documents` / `uploadSlots` for document notes and upload slots
 - `infoSections` for local numbers, addresses, and notes
-
-## Local document privacy
-
-- Files uploaded on the Documents page stay in the browser on that device only
-- Uploaded files are not sent to Vercel or any application server
-- Other visitors to the deployed site cannot see those files
-- Use the `Clear all local files` button after the trip if you want to remove them
 
 ## Quality checks
 
@@ -49,18 +63,12 @@ npm run lint
 npm run build
 ```
 
-## Vercel deployment
-
-The app is ready for Vercel, but the current machine needs a valid Vercel login before the first deployment.
-
-Once logged in, deploy from the project folder with:
+## Deploy via Git
 
 ```bash
-npx vercel
+git add .
+git commit -m "your message"
+git push
 ```
 
-For a production deployment:
-
-```bash
-npx vercel --prod
-```
+If Vercel is connected to `https://github.com/97drache/whitby.git`, the push will trigger deployment.

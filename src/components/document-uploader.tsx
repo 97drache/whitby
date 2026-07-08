@@ -1,123 +1,349 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { UploadSlot } from "@/data/trip-data";
 
-type UploadedDoc = {
+type DocumentMeta = {
+  slotId: string;
   name: string;
   type: string;
-  data: string;
+  size: number;
+  uploadedAt: string;
 };
-
-type StoredDocs = Record<string, UploadedDoc | null>;
-
-const DB_NAME = "canada-family-trip-docs";
-const STORE_NAME = "local-files";
-const DB_VERSION = 1;
 
 type DocumentUploaderProps = {
   slots: UploadSlot[];
 };
 
 export function DocumentUploader({ slots }: DocumentUploaderProps) {
-  const [docs, setDocs] = useState<StoredDocs>({});
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadDocs = async () => {
-      const db = await openDocsDb();
-      const storedDocs = await readAllDocs(db);
-
-      if (!cancelled) {
-        setDocs(storedDocs);
-        setIsLoaded(true);
-      }
-    };
-
-    void loadDocs();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [unlocked, setUnlocked] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const [busySlot, setBusySlot] = useState<string | null>(null);
+  const [docs, setDocs] = useState<Record<string, DocumentMeta | null>>({});
 
   const stats = useMemo(() => {
     const uploaded = slots.filter((slot) => docs[slot.id]).length;
     return `${uploaded}/${slots.length}`;
   }, [docs, slots]);
 
-  const handleSelect = (slotId: string, file: File | null) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkSessionOnMount() {
+      setChecking(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/documents");
+        if (cancelled) {
+          return;
+        }
+
+        if (response.status === 401) {
+          setUnlocked(false);
+          setDocs({});
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Unable to load shared documents.");
+        }
+
+        const payload = (await response.json()) as { documents: DocumentMeta[] };
+        const nextDocs: Record<string, DocumentMeta | null> = {};
+        for (const slot of slots) {
+          nextDocs[slot.id] =
+            payload.documents.find((document) => document.slotId === slot.id) ??
+            null;
+        }
+        setDocs(nextDocs);
+        setUnlocked(true);
+      } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Unable to load shared documents.",
+        );
+        setUnlocked(false);
+      } finally {
+        if (!cancelled) {
+          setChecking(false);
+        }
+      }
+    }
+
+    void checkSessionOnMount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slots]);
+
+  async function checkSession() {
+    setChecking(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/documents");
+      if (response.status === 401) {
+        setUnlocked(false);
+        setDocs({});
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Unable to load shared documents.");
+      }
+
+      const payload = (await response.json()) as { documents: DocumentMeta[] };
+      const nextDocs: Record<string, DocumentMeta | null> = {};
+      for (const slot of slots) {
+        nextDocs[slot.id] =
+          payload.documents.find((document) => document.slotId === slot.id) ??
+          null;
+      }
+      setDocs(nextDocs);
+      setUnlocked(true);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load shared documents.",
+      );
+      setUnlocked(false);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function handleUnlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    const response = await fetch("/api/family-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin }),
+    });
+
+    if (!response.ok) {
+      setError("Wrong family PIN. Try again.");
+      return;
+    }
+
+    setPin("");
+    await checkSession();
+  }
+
+  async function handleLock() {
+    await fetch("/api/family-auth", { method: "DELETE" });
+    setUnlocked(false);
+    setDocs({});
+  }
+
+  async function handleSelect(slotId: string, file: File | null) {
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const result = reader.result;
+    setBusySlot(slotId);
+    setError("");
 
-      if (typeof result !== "string") {
-        return;
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slotId,
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          dataUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(payload?.error ?? "Upload failed.");
       }
 
-      const nextDoc = {
-        name: file.name,
-        type: file.type || "application/octet-stream",
-        data: result,
+      await checkSession();
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error ? uploadError.message : "Upload failed.",
+      );
+    } finally {
+      setBusySlot(null);
+    }
+  }
+
+  async function handleOpen(slotId: string) {
+    setBusySlot(slotId);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/documents/${slotId}`);
+      if (!response.ok) {
+        throw new Error("Unable to open file.");
+      }
+
+      const payload = (await response.json()) as {
+        dataUrl: string;
+        name: string;
       };
+      const link = window.document.createElement("a");
+      link.href = payload.dataUrl;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.download = payload.name;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (openError) {
+      setError(
+        openError instanceof Error ? openError.message : "Unable to open file.",
+      );
+    } finally {
+      setBusySlot(null);
+    }
+  }
 
-      const db = await openDocsDb();
-      await writeDoc(db, slotId, nextDoc);
+  async function handleRemove(slotId: string) {
+    setBusySlot(slotId);
+    setError("");
 
-      setDocs((current) => ({
-        ...current,
-        [slotId]: nextDoc,
-      }));
-    };
+    try {
+      const response = await fetch(`/api/documents?slotId=${slotId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Unable to remove file.");
+      }
+      await checkSession();
+    } catch (removeError) {
+      setError(
+        removeError instanceof Error
+          ? removeError.message
+          : "Unable to remove file.",
+      );
+    } finally {
+      setBusySlot(null);
+    }
+  }
 
-    reader.readAsDataURL(file);
-  };
+  async function handleClearAll() {
+    setBusySlot("all");
+    setError("");
 
-  const handleRemove = async (slotId: string) => {
-    const db = await openDocsDb();
-    await deleteDoc(db, slotId);
+    try {
+      const response = await fetch("/api/documents?all=1", { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("Unable to clear shared files.");
+      }
+      await checkSession();
+    } catch (clearError) {
+      setError(
+        clearError instanceof Error
+          ? clearError.message
+          : "Unable to clear shared files.",
+      );
+    } finally {
+      setBusySlot(null);
+    }
+  }
 
-    setDocs((current) => ({
-      ...current,
-      [slotId]: null,
-    }));
-  };
+  if (checking) {
+    return (
+      <div className="rounded-3xl bg-emerald-50 p-5 text-sm text-emerald-900">
+        Checking family access...
+      </div>
+    );
+  }
 
-  const handleClearAll = async () => {
-    const db = await openDocsDb();
-    await clearDocs(db);
-    setDocs({});
-  };
+  if (!unlocked) {
+    return (
+      <form
+        onSubmit={handleUnlock}
+        className="space-y-4 rounded-3xl border border-emerald-100 bg-white p-6"
+      >
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Family Lock
+          </p>
+          <h3 className="text-xl font-semibold text-slate-950">
+            Enter family PIN to open documents
+          </h3>
+          <p className="text-sm leading-6 text-slate-600">
+            Only family members with the shared PIN can view or upload eTA and
+            eTicket files. Visitors without the PIN cannot see them.
+          </p>
+        </div>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          value={pin}
+          onChange={(event) => setPin(event.target.value)}
+          placeholder="Family PIN"
+          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none ring-emerald-300 focus:ring"
+        />
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+        <button
+          type="submit"
+          className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+        >
+          Unlock documents
+        </button>
+      </form>
+    );
+  }
 
   return (
     <div className="space-y-5">
       <div className="rounded-3xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-        <strong>{stats}</strong> stored only in this browser on this device.
-        These files are not uploaded to Vercel, not sent to a server, and not
-        shared with other visitors.
+        <strong>{stats}</strong> shared with the family. Files stay behind the
+        family PIN. After unlock, anyone in the family can open them on any
+        device.
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4">
         <p className="text-sm leading-6 text-slate-600">
-          For extra privacy, use this page on a personal device and press
-          `Clear all local files` after the trip if needed.
+          Upload once here as the main administrator. Then every family member
+          who knows the PIN can open the same documents.
         </p>
-        <button
-          type="button"
-          onClick={() => void handleClearAll()}
-          className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-        >
-          Clear all local files
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleLock()}
+            className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+          >
+            Lock again
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleClearAll()}
+            className="rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-200"
+          >
+            Clear all shared files
+          </button>
+        </div>
       </div>
+      {error && (
+        <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         {slots.map((slot) => {
           const document = docs[slot.id];
+          const isBusy = busySlot === slot.id || busySlot === "all";
 
           return (
             <article
@@ -140,35 +366,39 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
                   className="hidden"
+                  disabled={isBusy}
                   onChange={(event) =>
-                    handleSelect(slot.id, event.target.files?.[0] ?? null)
+                    void handleSelect(slot.id, event.target.files?.[0] ?? null)
                   }
                 />
-                {document ? "Replace file" : "Choose file"}
+                {isBusy
+                  ? "Working..."
+                  : document
+                    ? "Replace shared file"
+                    : "Upload shared file"}
               </label>
-              {!isLoaded && (
-                <p className="mt-4 text-sm text-slate-500">
-                  Loading local files saved in this browser...
-                </p>
-              )}
               {document ? (
                 <div className="mt-4 rounded-2xl bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-slate-900">
                     {document.name}
                   </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Uploaded {new Date(document.uploadedAt).toLocaleString()}
+                  </p>
                   <div className="mt-3 flex gap-3">
-                    <a
-                      href={document.data}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
-                    >
-                      Open file
-                    </a>
                     <button
                       type="button"
+                      disabled={isBusy}
+                      onClick={() => void handleOpen(slot.id)}
+                      className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
+                    >
+                      Open file
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBusy}
                       onClick={() => void handleRemove(slot.id)}
-                      className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+                      className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:opacity-60"
                     >
                       Remove
                     </button>
@@ -176,7 +406,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                 </div>
               ) : (
                 <p className="mt-4 text-sm text-slate-500">
-                  No file uploaded yet.
+                  No shared file uploaded yet.
                 </p>
               )}
             </article>
@@ -187,87 +417,17 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   );
 }
 
-function openDocsDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function readAllDocs(db: IDBDatabase): Promise<StoredDocs> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readonly");
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.getAllKeys();
-    const result: StoredDocs = {};
-
-    request.onsuccess = () => {
-      const keys = request.result as string[];
-
-      if (keys.length === 0) {
-        resolve(result);
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Unable to read this file."));
         return;
       }
-
-      let completed = 0;
-
-      keys.forEach((key) => {
-        const docRequest = store.get(key);
-        docRequest.onsuccess = () => {
-          result[key] = (docRequest.result as UploadedDoc | undefined) ?? null;
-          completed += 1;
-
-          if (completed === keys.length) {
-            resolve(result);
-          }
-        };
-        docRequest.onerror = () => reject(docRequest.error);
-      });
+      resolve(reader.result);
     };
-
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function writeDoc(db: IDBDatabase, key: string, value: UploadedDoc): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(value, key);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function deleteDoc(db: IDBDatabase, key: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.delete(key);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function clearDocs(db: IDBDatabase): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.clear();
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    reader.onerror = () => reject(new Error("Unable to read this file."));
+    reader.readAsDataURL(file);
   });
 }

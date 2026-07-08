@@ -14,7 +14,7 @@ export default function DocumentsPage() {
       <SectionCard
         title="Travel documents"
         eyebrow="Documents"
-        description="Simple local-only file slots for the 4 family eTA files and 4 family eTicket files."
+        description="Family PIN locked. Upload once as the main administrator, then every family member who knows the PIN can open the same eTA and eTicket files."
       >
         <DocumentUploader slots={uploadSlots} />
       </SectionCard>
