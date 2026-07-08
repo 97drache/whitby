@@ -40,8 +40,8 @@ export function PrepChecklist({ items }: PrepChecklistProps) {
   return (
     <div className="space-y-5">
       <div className="rounded-2xl bg-sky-50 p-4 text-sm text-sky-950">
-        <strong>{completedCount}</strong> of <strong>{items.length}</strong>{" "}
-        prep items completed on this device.
+        이 기기에서 <strong>{items.length}</strong>개 중{" "}
+        <strong>{completedCount}</strong>개 준비 완료
       </div>
       <div className="space-y-3">
         {items.map((item) => {
@@ -72,7 +72,7 @@ export function PrepChecklist({ items }: PrepChecklistProps) {
                     {item.owner}
                   </span>
                   <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
-                    Due {item.due}
+                    기한 {item.due}
                   </span>
                 </div>
                 <p className="text-sm leading-6 text-slate-600">

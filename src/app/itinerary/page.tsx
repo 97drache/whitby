@@ -5,9 +5,9 @@ export default function ItineraryPage() {
   return (
     <div className="space-y-6">
       <SectionCard
-        title="Day-by-day itinerary"
-        eyebrow="Itinerary"
-        description="Keep reservations, transfers, and daily flow visible for the whole family."
+        title="날짜별 여정"
+        eyebrow="여정"
+        description="출국과 귀국 일정을 가족이 함께 보기 쉽게 정리했습니다."
       >
         <div className="space-y-5">
           {itinerary.map((day) => (
@@ -17,7 +17,7 @@ export default function ItineraryPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-700">
+                  <p className="text-sm font-semibold tracking-[0.12em] text-sky-700">
                     {day.date}
                   </p>
                   <h3 className="mt-1 text-2xl font-semibold text-slate-950">
@@ -27,10 +27,10 @@ export default function ItineraryPage() {
                 </div>
                 <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
                   <p>
-                    <strong>City:</strong> {day.city}
+                    <strong>구간:</strong> {day.city}
                   </p>
                   <p className="mt-1">
-                    <strong>Stay:</strong> {day.stay}
+                    <strong>숙소:</strong> {day.stay}
                   </p>
                 </div>
               </div>
@@ -47,12 +47,12 @@ export default function ItineraryPage() {
                     </p>
                     {leg.location && (
                       <p className="mt-2 text-sm text-slate-500">
-                        Location: {leg.location}
+                        위치: {leg.location}
                       </p>
                     )}
                     {leg.reference && (
                       <p className="mt-1 text-sm text-slate-500">
-                        Ref: {leg.reference}
+                        참고: {leg.reference}
                       </p>
                     )}
                   </div>

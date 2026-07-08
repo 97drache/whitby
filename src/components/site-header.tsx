@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 const navItems = [
-  { href: "/", label: "Overview" },
-  { href: "/itinerary", label: "Itinerary" },
-  { href: "/prep", label: "Prep" },
-  { href: "/documents", label: "Documents" },
-  { href: "/info", label: "Info" },
+  { href: "/", label: "홈" },
+  { href: "/itinerary", label: "여정" },
+  { href: "/prep", label: "준비" },
+  { href: "/documents", label: "서류" },
+  { href: "/info", label: "정보" },
 ];
 
 export function SiteHeader() {
@@ -14,16 +14,16 @@ export function SiteHeader() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.25em] text-emerald-600">
-              Family Travel Hub
+            <p className="text-sm font-medium tracking-[0.18em] text-emerald-600">
+              가족 여행 허브
             </p>
             <h1 className="text-2xl font-semibold text-slate-900">
-              Canada Trip Planner
+              캐나다 여행 플래너
             </h1>
           </div>
           <p className="max-w-xl text-sm text-slate-600">
-            A warm, simple trip page for the whole family, with just the details
-            everyone needs.
+            항공편, 서류, 숙소, 현지 번호를 한곳에 모아 가족이 함께 보는 밝은
+            여행 페이지입니다.
           </p>
         </div>
         <nav className="flex flex-wrap gap-2">

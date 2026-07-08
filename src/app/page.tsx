@@ -18,7 +18,7 @@ export default function Home() {
       <section className="rounded-[2rem] bg-gradient-to-br from-emerald-100 via-sky-50 to-amber-50 px-6 py-8 text-slate-900 shadow-lg shadow-emerald-100/70 sm:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-sm font-semibold tracking-[0.18em] text-emerald-700">
               {tripOverview.destination}
             </p>
             <div className="space-y-3">
@@ -34,34 +34,34 @@ export default function Home() {
                 href="/prep"
                 className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
               >
-                Open prep checklist
+                준비 체크리스트 보기
               </Link>
               <Link
                 href="/documents"
                 className="rounded-full border border-emerald-200 bg-white/70 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white"
               >
-                Review documents
+                서류 확인하기
               </Link>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
             <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">Travel window</p>
+              <p className="text-sm text-slate-600">여행 구간</p>
               <p className="mt-2 text-lg font-semibold">
                 {tripOverview.travelWindow}
               </p>
             </div>
             <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">Next key day</p>
+              <p className="text-sm text-slate-600">다음 핵심 일정</p>
               <p className="mt-2 text-lg font-semibold">{nextTripDay.date}</p>
               <p className="text-sm text-slate-600">{nextTripDay.title}</p>
             </div>
             <div className="rounded-3xl bg-white/80 p-5">
-              <p className="text-sm text-slate-600">Documents ready</p>
+              <p className="text-sm text-slate-600">준비된 서류</p>
               <p className="mt-2 text-lg font-semibold">
                 {readyDocuments}/{documents.length}
               </p>
-              <p className="text-sm text-slate-600">Keep the family files easy to open</p>
+              <p className="text-sm text-slate-600">가족 서류를 쉽게 열어보세요</p>
             </div>
           </div>
         </div>
@@ -69,8 +69,8 @@ export default function Home() {
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
         <SectionCard
-          title="Family overview"
-          eyebrow="Trip Snapshot"
+          title="가족 구성"
+          eyebrow="여행 한눈에"
           description={tripOverview.countdownLabel}
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -82,7 +82,7 @@ export default function Home() {
                 >
                   <p className="font-semibold text-slate-950">{member.name}</p>
                   {member.departureGroup && (
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                    <p className="mt-1 text-xs font-semibold tracking-[0.12em] text-emerald-700">
                       {member.departureGroup}
                     </p>
                   )}
@@ -106,9 +106,9 @@ export default function Home() {
         </SectionCard>
 
         <SectionCard
-          title="Quick links"
-          eyebrow="Useful Access"
-          description="Keep your most important travel services one tap away."
+          title="바로가기"
+          eyebrow="자주 쓰는 링크"
+          description="여행에 바로 필요한 사이트를 빠르게 열 수 있습니다."
         >
           <div className="space-y-3">
             {quickLinks.map((link) => (
@@ -120,7 +120,7 @@ export default function Home() {
                 className="flex items-center justify-between rounded-2xl border border-emerald-100 p-4 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50"
               >
                 <span>{link.label}</span>
-                <span className="text-emerald-700">Open</span>
+                <span className="text-emerald-700">열기</span>
               </a>
             ))}
           </div>
@@ -129,9 +129,9 @@ export default function Home() {
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <SectionCard
-          title="Upcoming itinerary"
-          eyebrow="Next Stops"
-          description="See the first few days at a glance. Open the full itinerary for details."
+          title="주요 여정"
+          eyebrow="항공 일정"
+          description="먼저 출발, 나중 출발, 귀국 일정을 간단히 확인할 수 있습니다."
         >
           <div className="space-y-4">
             {itinerary.map((day) => (
@@ -159,31 +159,31 @@ export default function Home() {
         </SectionCard>
 
         <SectionCard
-          title="Shared family details"
-          eyebrow="Ontario Base"
-          description="The details everyone may need while traveling in Canada."
+          title="가족이 공유할 정보"
+          eyebrow="온타리오 베이스"
+          description="여행 중에 모두가 자주 보게 될 핵심 정보입니다."
         >
           <div className="space-y-3">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
-              <p className="text-sm font-medium text-emerald-700">Stay address</p>
+              <p className="text-sm font-medium text-emerald-700">숙소 주소</p>
               <p className="mt-1 text-lg font-semibold text-slate-950">
                 {sharedTravelDetails.stayAddress}
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">Rental car number</p>
+              <p className="text-sm font-medium text-slate-600">렌터카 번호</p>
               <p className="mt-1 text-lg font-semibold text-slate-950">
                 {sharedTravelDetails.rentalCarNumber}
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">Canadian SIM number</p>
+              <p className="text-sm font-medium text-slate-600">캐나다 유심 번호</p>
               <p className="mt-1 text-lg font-semibold text-slate-950">
                 {sharedTravelDetails.canadaPhoneNumber}
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-600">Return plan</p>
+              <p className="text-sm font-medium text-slate-600">귀국 계획</p>
               <p className="mt-1 text-lg font-semibold text-slate-950">
                 {sharedTravelDetails.returnPlan}
               </p>

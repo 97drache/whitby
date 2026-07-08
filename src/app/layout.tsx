@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Canada Family Trip Planner",
-  description: "A family travel hub for itinerary, prep, and travel documents.",
+  title: "우리 가족 캐나다 여행",
+  description: "가족 여정, 준비 체크리스트, 여행 서류를 한곳에서 보는 페이지",
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-slate-100 text-slate-950">

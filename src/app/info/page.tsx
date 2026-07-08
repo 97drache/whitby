@@ -5,9 +5,9 @@ export default function InfoPage() {
   return (
     <div className="space-y-6">
       <SectionCard
-        title="Family travel flow"
-        eyebrow="Who Leaves When"
-        description="A simple summary so kids and adults can both understand the travel order."
+        title="누가 언제 출발하나요?"
+        eyebrow="가족 이동 순서"
+        description="부모님과 아이들이 바로 이해할 수 있도록 출발 순서를 간단히 적었습니다."
       >
         <div className="grid gap-4 md:grid-cols-2">
           {tripOverview.family.map((member) => (
@@ -30,9 +30,9 @@ export default function InfoPage() {
       </SectionCard>
 
       <SectionCard
-        title="Travel info and family notes"
-        eyebrow="Local Info"
-        description="Keep practical details here so the essentials are available even under travel stress."
+        title="현지에서 쓸 정보"
+        eyebrow="정보"
+        description="급할 때도 바로 찾을 수 있도록 핵심만 모아두었습니다."
       >
         <div className="grid gap-4 md:grid-cols-3">
           {infoSections.map((section) => (
@@ -61,19 +61,19 @@ export default function InfoPage() {
       </SectionCard>
 
       <SectionCard
-        title="Editable details in code"
-        eyebrow="Quick Update Points"
-        description="When the Canadian SIM number or rental car number is confirmed, update these values in the trip data file."
+        title="나중에 채울 정보"
+        eyebrow="업데이트 포인트"
+        description="캐나다 유심 번호나 렌터카 번호가 정해지면 여기서도 바로 확인할 수 있게 업데이트합니다."
       >
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-medium text-slate-600">Rental car number</p>
+            <p className="text-sm font-medium text-slate-600">렌터카 번호</p>
             <p className="mt-2 text-lg font-semibold text-slate-950">
               {sharedTravelDetails.rentalCarNumber}
             </p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-medium text-slate-600">Canadian SIM number</p>
+            <p className="text-sm font-medium text-slate-600">캐나다 유심 번호</p>
             <p className="mt-2 text-lg font-semibold text-slate-950">
               {sharedTravelDetails.canadaPhoneNumber}
             </p>

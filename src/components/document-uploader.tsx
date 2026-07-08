@@ -48,28 +48,28 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         }
 
         if (!response.ok) {
-          throw new Error("Unable to load shared documents.");
-        }
+        throw new Error("공유 서류를 불러올 수 없습니다.");
+      }
 
-        const payload = (await response.json()) as { documents: DocumentMeta[] };
-        const nextDocs: Record<string, DocumentMeta | null> = {};
-        for (const slot of slots) {
-          nextDocs[slot.id] =
-            payload.documents.find((document) => document.slotId === slot.id) ??
-            null;
-        }
-        setDocs(nextDocs);
-        setUnlocked(true);
-      } catch (loadError) {
-        if (cancelled) {
-          return;
-        }
+      const payload = (await response.json()) as { documents: DocumentMeta[] };
+      const nextDocs: Record<string, DocumentMeta | null> = {};
+      for (const slot of slots) {
+        nextDocs[slot.id] =
+          payload.documents.find((document) => document.slotId === slot.id) ??
+          null;
+      }
+      setDocs(nextDocs);
+      setUnlocked(true);
+    } catch (loadError) {
+      if (cancelled) {
+        return;
+      }
 
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Unable to load shared documents.",
-        );
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "공유 서류를 불러올 수 없습니다.",
+      );
         setUnlocked(false);
       } finally {
         if (!cancelled) {
@@ -98,7 +98,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       }
 
       if (!response.ok) {
-        throw new Error("Unable to load shared documents.");
+        throw new Error("공유 서류를 불러올 수 없습니다.");
       }
 
       const payload = (await response.json()) as { documents: DocumentMeta[] };
@@ -114,7 +114,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unable to load shared documents.",
+          : "공유 서류를 불러올 수 없습니다.",
       );
       setUnlocked(false);
     } finally {
@@ -133,7 +133,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     });
 
     if (!response.ok) {
-      setError("Wrong family PIN. Try again.");
+      setError("가족 PIN이 맞지 않습니다. 다시 입력해 주세요.");
       return;
     }
 
@@ -172,13 +172,15 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(payload?.error ?? "Upload failed.");
+        throw new Error(payload?.error ?? "업로드에 실패했습니다.");
       }
 
       await checkSession();
     } catch (uploadError) {
       setError(
-        uploadError instanceof Error ? uploadError.message : "Upload failed.",
+        uploadError instanceof Error
+          ? uploadError.message
+          : "업로드에 실패했습니다.",
       );
     } finally {
       setBusySlot(null);
@@ -192,7 +194,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     try {
       const response = await fetch(`/api/documents/${slotId}`);
       if (!response.ok) {
-        throw new Error("Unable to open file.");
+        throw new Error("파일을 열 수 없습니다.");
       }
 
       const payload = (await response.json()) as {
@@ -209,7 +211,9 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       link.remove();
     } catch (openError) {
       setError(
-        openError instanceof Error ? openError.message : "Unable to open file.",
+        openError instanceof Error
+          ? openError.message
+          : "파일을 열 수 없습니다.",
       );
     } finally {
       setBusySlot(null);
@@ -225,14 +229,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         method: "DELETE",
       });
       if (!response.ok) {
-        throw new Error("Unable to remove file.");
+        throw new Error("파일을 삭제할 수 없습니다.");
       }
       await checkSession();
     } catch (removeError) {
       setError(
         removeError instanceof Error
           ? removeError.message
-          : "Unable to remove file.",
+          : "파일을 삭제할 수 없습니다.",
       );
     } finally {
       setBusySlot(null);
@@ -246,14 +250,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     try {
       const response = await fetch("/api/documents?all=1", { method: "DELETE" });
       if (!response.ok) {
-        throw new Error("Unable to clear shared files.");
+        throw new Error("공유 서류를 모두 삭제할 수 없습니다.");
       }
       await checkSession();
     } catch (clearError) {
       setError(
         clearError instanceof Error
           ? clearError.message
-          : "Unable to clear shared files.",
+          : "공유 서류를 모두 삭제할 수 없습니다.",
       );
     } finally {
       setBusySlot(null);
@@ -263,7 +267,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   if (checking) {
     return (
       <div className="rounded-3xl bg-emerald-50 p-5 text-sm text-emerald-900">
-        Checking family access...
+        가족 문서 접근 권한을 확인하는 중...
       </div>
     );
   }
@@ -275,15 +279,15 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         className="space-y-4 rounded-3xl border border-emerald-100 bg-white p-6"
       >
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-            Family Lock
+          <p className="text-xs font-semibold tracking-[0.18em] text-emerald-700">
+            가족 잠금
           </p>
           <h3 className="text-xl font-semibold text-slate-950">
-            Enter family PIN to open documents
+            가족 PIN을 입력해 서류를 열어주세요
           </h3>
           <p className="text-sm leading-6 text-slate-600">
-            Only family members with the shared PIN can view or upload eTA and
-            eTicket files. Visitors without the PIN cannot see them.
+            가족이 함께 아는 PIN으로만 eTA와 eTicket을 보고 올릴 수 있습니다.
+            PIN을 모르는 방문자는 서류를 볼 수 없습니다.
           </p>
         </div>
         <input
@@ -292,7 +296,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           autoComplete="one-time-code"
           value={pin}
           onChange={(event) => setPin(event.target.value)}
-          placeholder="Family PIN"
+          placeholder="가족 PIN"
           className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none ring-emerald-300 focus:ring"
         />
         {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -300,7 +304,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           type="submit"
           className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
         >
-          Unlock documents
+          서류 열기
         </button>
       </form>
     );
@@ -309,14 +313,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   return (
     <div className="space-y-5">
       <div className="rounded-3xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-        <strong>{stats}</strong> shared with the family. Files stay behind the
-        family PIN. After unlock, anyone in the family can open them on any
-        device.
+        현재 <strong>{stats}</strong>개를 가족이 함께 보고 있습니다. 서류는
+        가족 PIN 뒤에 보관되며, 잠금을 풀면 어떤 기기에서도 같은 파일을 열 수
+        있습니다.
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4">
         <p className="text-sm leading-6 text-slate-600">
-          Upload once here as the main administrator. Then every family member
-          who knows the PIN can open the same documents.
+          주 관리자가 여기서 한 번 올리면, PIN을 아는 가족 모두 같은 서류를 볼
+          수 있습니다.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -324,14 +328,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
             onClick={() => void handleLock()}
             className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
           >
-            Lock again
+            다시 잠그기
           </button>
           <button
             type="button"
             onClick={() => void handleClearAll()}
             className="rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-200"
           >
-            Clear all shared files
+            공유 서류 모두 삭제
           </button>
         </div>
       </div>
@@ -372,10 +376,10 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                   }
                 />
                 {isBusy
-                  ? "Working..."
+                  ? "처리 중..."
                   : document
-                    ? "Replace shared file"
-                    : "Upload shared file"}
+                    ? "공유 파일 바꾸기"
+                    : "공유 파일 올리기"}
               </label>
               {document ? (
                 <div className="mt-4 rounded-2xl bg-slate-50 p-4">
@@ -383,7 +387,8 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                     {document.name}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Uploaded {new Date(document.uploadedAt).toLocaleString()}
+                    업로드{" "}
+                    {new Date(document.uploadedAt).toLocaleString("ko-KR")}
                   </p>
                   <div className="mt-3 flex gap-3">
                     <button
@@ -392,7 +397,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                       onClick={() => void handleOpen(slot.id)}
                       className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
                     >
-                      Open file
+                      파일 열기
                     </button>
                     <button
                       type="button"
@@ -400,13 +405,13 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                       onClick={() => void handleRemove(slot.id)}
                       className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:opacity-60"
                     >
-                      Remove
+                      삭제
                     </button>
                   </div>
                 </div>
               ) : (
                 <p className="mt-4 text-sm text-slate-500">
-                  No shared file uploaded yet.
+                  아직 올린 공유 파일이 없습니다.
                 </p>
               )}
             </article>
@@ -422,12 +427,12 @@ function readFileAsDataUrl(file: File) {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== "string") {
-        reject(new Error("Unable to read this file."));
+        reject(new Error("이 파일을 읽을 수 없습니다."));
         return;
       }
       resolve(reader.result);
     };
-    reader.onerror = () => reject(new Error("Unable to read this file."));
+    reader.onerror = () => reject(new Error("이 파일을 읽을 수 없습니다."));
     reader.readAsDataURL(file);
   });
 }
