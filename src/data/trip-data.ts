@@ -108,7 +108,7 @@ export const itinerary: TripDay[] = [
   },
   {
     id: "outbound-later",
-    date: "2026-07-22",
+    date: "2026-08-06",
     title: "Yongwoon · Yireh 출국",
     city: "인천(ICN) → 토론토(YYZ)",
     stay: "1445 Coral Spgs Path, ON",
@@ -141,22 +141,22 @@ export const itinerary: TripDay[] = [
   },
   {
     id: "return-together",
-    date: "2026-08-03",
+    date: "2026-08-14 (+1)",
     title: "가족 함께 귀국",
     city: "토론토(YYZ) → 인천(ICN)",
     stay: "귀국편",
-    summary: "가족 모두 함께 귀국합니다. 토론토에서 출발해 다음날 인천에 도착합니다.",
+    summary: "가족 모두 함께 귀국합니다. 2026-08-14 토론토에서 출발해 다음날 인천에 도착합니다.",
     legs: [
       {
         title: "토론토 출발",
         time: "12:55",
-        description: "토론토 피어슨 국제공항 터미널 3 (YYZ)",
+        description: "2026-08-14 · 토론토 피어슨 국제공항 터미널 3 (YYZ)",
         location: "YYZ Terminal 3",
       },
       {
         title: "인천 도착",
         time: "16:30 (+1일)",
-        description: "서울/인천국제공항 터미널 2 (ICN)",
+        description: "2026-08-15 · 서울/인천국제공항 터미널 2 (ICN)",
         location: "ICN Terminal 2",
       },
     ],
@@ -242,5 +242,5 @@ export const sharedTravelDetails = {
   stayAddress: "1445 Coral Spgs Path, ON",
   rentalCarNumber: "차량번호 입력 예정",
   canadaPhoneNumber: "캐나다 유심 번호 입력 예정",
-  returnPlan: "YYZ 12:55 → ICN 16:30 (+1일)",
+  returnPlan: "2026-08-14 YYZ 12:55 → 2026-08-15 ICN 16:30",
 };
