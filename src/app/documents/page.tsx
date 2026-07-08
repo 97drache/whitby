@@ -1,38 +1,21 @@
 import { DocumentUploader } from "@/components/document-uploader";
 import { SectionCard } from "@/components/section-card";
-import { sharedTravelDetails, uploadSlots } from "@/data/trip-data";
+import { tripOverview, uploadSlots } from "@/data/trip-data";
 
 export default function DocumentsPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <SectionCard
         title="여행 서류"
-        eyebrow="서류"
-        description="가족 PIN(0114)으로만 열립니다. 한 번 올리면 가족이 같은 서류를 볼 수 있습니다."
+        eyebrow="Documents"
+        description="가족 PIN으로 열고, 출국/귀국 eTicket과 차량 예약 확인증을 함께 관리합니다."
       >
         <DocumentUploader slots={uploadSlots} />
       </SectionCard>
-
-      <SectionCard title="공유 정보" eyebrow="현지">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-red-100 bg-red-50 p-5">
-            <p className="text-sm font-medium text-red-700">숙소</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
-              {sharedTravelDetails.stayAddress}
-            </p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-medium text-slate-600">렌터카</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
-              {sharedTravelDetails.rentalCarNumber}
-            </p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-medium text-slate-600">캐나다 번호</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
-              {sharedTravelDetails.canadaPhoneNumber}
-            </p>
-          </div>
+      <SectionCard title="숙소" eyebrow="Stay">
+        <div className="rounded-3xl border border-[#e3dccf] bg-white p-5">
+          <p className="text-sm text-slate-500">주소</p>
+          <p className="mt-2 text-lg font-semibold text-slate-950">{tripOverview.stayAddress}</p>
         </div>
       </SectionCard>
     </div>

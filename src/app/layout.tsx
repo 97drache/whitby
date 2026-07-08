@@ -28,10 +28,10 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-100 text-slate-950">
+      <body className="min-h-full bg-[#f8f5ef] text-slate-950">
         <div className="flex min-h-screen flex-col">
           <SiteHeader />
-          <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6 sm:px-6">
+          <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-6 sm:px-6">
             {children}
           </main>
         </div>

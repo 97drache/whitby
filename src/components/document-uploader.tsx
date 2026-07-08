@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { UploadSlot } from "@/data/trip-data";
+import { FormEvent, useMemo, useState } from "react";
+import type { SharedDetails, UploadSlot } from "@/data/trip-data";
 
 type DocumentMeta = {
   slotId: string;
@@ -15,108 +15,58 @@ type DocumentUploaderProps = {
   slots: UploadSlot[];
 };
 
+const EMPTY_DETAILS: SharedDetails = {
+  canadaPhoneNumber: "",
+  carNumber: "",
+};
+
 export function DocumentUploader({ slots }: DocumentUploaderProps) {
   const [unlocked, setUnlocked] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
-  const [busySlot, setBusySlot] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [docs, setDocs] = useState<Record<string, DocumentMeta | null>>({});
+  const [details, setDetails] = useState<SharedDetails>(EMPTY_DETAILS);
 
   const stats = useMemo(() => {
     const uploaded = slots.filter((slot) => docs[slot.id]).length;
     return `${uploaded}/${slots.length}`;
   }, [docs, slots]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function checkSessionOnMount() {
-      setChecking(true);
-      setError("");
-
-      try {
-        const response = await fetch("/api/documents");
-        if (cancelled) {
-          return;
-        }
-
-        if (response.status === 401) {
-          setUnlocked(false);
-          setDocs({});
-          return;
-        }
-
-        if (!response.ok) {
-        throw new Error("공유 서류를 불러올 수 없습니다.");
-      }
-
-      const payload = (await response.json()) as { documents: DocumentMeta[] };
-      const nextDocs: Record<string, DocumentMeta | null> = {};
-      for (const slot of slots) {
-        nextDocs[slot.id] =
-          payload.documents.find((document) => document.slotId === slot.id) ??
-          null;
-      }
-      setDocs(nextDocs);
-      setUnlocked(true);
-    } catch (loadError) {
-      if (cancelled) {
-        return;
-      }
-
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "공유 서류를 불러올 수 없습니다.",
-      );
-        setUnlocked(false);
-      } finally {
-        if (!cancelled) {
-          setChecking(false);
-        }
-      }
-    }
-
-    void checkSessionOnMount();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slots]);
-
-  async function checkSession() {
+  async function refreshAll() {
     setChecking(true);
     setError("");
 
     try {
-      const response = await fetch("/api/documents");
-      if (response.status === 401) {
+      const docResponse = await fetch("/api/documents");
+      if (docResponse.status === 401) {
         setUnlocked(false);
         setDocs({});
+        setDetails(EMPTY_DETAILS);
         return;
       }
-
-      if (!response.ok) {
-        setUnlocked(true);
+      if (!docResponse.ok) {
         throw new Error("공유 서류를 불러올 수 없습니다.");
       }
 
-      const payload = (await response.json()) as { documents: DocumentMeta[] };
+      const detailResponse = await fetch("/api/shared-details");
+      if (!detailResponse.ok) {
+        throw new Error("공유 정보를 불러올 수 없습니다.");
+      }
+
+      const docPayload = (await docResponse.json()) as { documents: DocumentMeta[] };
+      const detailPayload = (await detailResponse.json()) as { details: SharedDetails };
       const nextDocs: Record<string, DocumentMeta | null> = {};
       for (const slot of slots) {
         nextDocs[slot.id] =
-          payload.documents.find((document) => document.slotId === slot.id) ??
-          null;
+          docPayload.documents.find((document) => document.slotId === slot.id) ?? null;
       }
       setDocs(nextDocs);
+      setDetails(detailPayload.details);
       setUnlocked(true);
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "공유 서류를 불러올 수 없습니다.",
-      );
+      setError(loadError instanceof Error ? loadError.message : "불러오기에 실패했습니다.");
     } finally {
       setChecking(false);
     }
@@ -125,7 +75,6 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   async function handleUnlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-
     const response = await fetch("/api/family-auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -133,32 +82,27 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      setError(payload?.error ?? "가족 PIN이 맞지 않습니다. 다시 입력해 주세요.");
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(payload?.error ?? "가족 PIN이 맞지 않습니다.");
       return;
     }
 
     setPin("");
-    setUnlocked(true);
-    await checkSession();
+    await refreshAll();
   }
 
   async function handleLock() {
     await fetch("/api/family-auth", { method: "DELETE" });
     setUnlocked(false);
     setDocs({});
+    setDetails(EMPTY_DETAILS);
+    setError("");
   }
 
   async function handleSelect(slotId: string, file: File | null) {
-    if (!file) {
-      return;
-    }
-
-    setBusySlot(slotId);
+    if (!file) return;
+    setBusyKey(slotId);
     setError("");
-
     try {
       const dataUrl = await readFileAsDataUrl(file);
       const response = await fetch("/api/documents", {
@@ -171,252 +115,141 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           dataUrl,
         }),
       });
-
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "업로드에 실패했습니다.");
       }
-
-      await checkSession();
+      await refreshAll();
     } catch (uploadError) {
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "업로드에 실패했습니다.",
-      );
+      setError(uploadError instanceof Error ? uploadError.message : "업로드에 실패했습니다.");
     } finally {
-      setBusySlot(null);
+      setBusyKey(null);
     }
   }
 
   async function handleOpen(slotId: string) {
-    setBusySlot(slotId);
+    setBusyKey(slotId);
     setError("");
-
     try {
       const response = await fetch(`/api/documents/${slotId}`);
-      if (!response.ok) {
-        throw new Error("파일을 열 수 없습니다.");
-      }
-
-      const payload = (await response.json()) as {
-        dataUrl: string;
-        name: string;
-      };
-      const link = window.document.createElement("a");
+      if (!response.ok) throw new Error("파일을 열 수 없습니다.");
+      const payload = (await response.json()) as { dataUrl: string; name: string };
+      const link = document.createElement("a");
       link.href = payload.dataUrl;
       link.target = "_blank";
       link.rel = "noreferrer";
       link.download = payload.name;
-      window.document.body.appendChild(link);
+      document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (openError) {
-      setError(
-        openError instanceof Error
-          ? openError.message
-          : "파일을 열 수 없습니다.",
-      );
+      setError(openError instanceof Error ? openError.message : "파일을 열 수 없습니다.");
     } finally {
-      setBusySlot(null);
+      setBusyKey(null);
     }
   }
 
   async function handleRemove(slotId: string) {
-    setBusySlot(slotId);
+    setBusyKey(slotId);
     setError("");
-
     try {
-      const response = await fetch(`/api/documents?slotId=${slotId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("파일을 삭제할 수 없습니다.");
-      }
-      await checkSession();
+      const response = await fetch(`/api/documents?slotId=${slotId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("파일을 삭제할 수 없습니다.");
+      await refreshAll();
     } catch (removeError) {
-      setError(
-        removeError instanceof Error
-          ? removeError.message
-          : "파일을 삭제할 수 없습니다.",
-      );
+      setError(removeError instanceof Error ? removeError.message : "파일을 삭제할 수 없습니다.");
     } finally {
-      setBusySlot(null);
+      setBusyKey(null);
     }
   }
 
-  async function handleClearAll() {
-    setBusySlot("all");
+  async function saveDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusyKey("details");
     setError("");
-
     try {
-      const response = await fetch("/api/documents?all=1", { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("공유 서류를 모두 삭제할 수 없습니다.");
-      }
-      await checkSession();
-    } catch (clearError) {
-      setError(
-        clearError instanceof Error
-          ? clearError.message
-          : "공유 서류를 모두 삭제할 수 없습니다.",
-      );
+      const response = await fetch("/api/shared-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(details),
+      });
+      if (!response.ok) throw new Error("공유 정보를 저장할 수 없습니다.");
+      await refreshAll();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "공유 정보를 저장할 수 없습니다.");
     } finally {
-      setBusySlot(null);
+      setBusyKey(null);
     }
-  }
-
-  if (checking) {
-    return (
-      <div className="rounded-3xl bg-emerald-50 p-5 text-sm text-emerald-900">
-        가족 문서 접근 권한을 확인하는 중...
-      </div>
-    );
   }
 
   if (!unlocked) {
     return (
-      <form
-        onSubmit={handleUnlock}
-        className="space-y-4 rounded-3xl border border-emerald-100 bg-white p-6"
-      >
-        <div className="space-y-2">
-          <p className="text-xs font-semibold tracking-[0.18em] text-emerald-700">
-            가족 잠금
-          </p>
-          <h3 className="text-xl font-semibold text-slate-950">
-            가족 PIN을 입력해 서류를 열어주세요
-          </h3>
-          <p className="text-sm leading-6 text-slate-600">
-            가족이 함께 아는 PIN으로만 eTA와 eTicket을 보고 올릴 수 있습니다.
-            PIN을 모르는 방문자는 서류를 볼 수 없습니다.
-          </p>
+      <form onSubmit={handleUnlock} className="space-y-4 rounded-3xl border border-[#e3dccf] bg-white p-6">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.18em] text-[#6a7d61]">FAMILY PIN</p>
+          <h3 className="mt-2 text-xl font-semibold text-slate-950">가족 PIN으로 서류 열기</h3>
         </div>
         <input
           type="password"
           inputMode="numeric"
-          autoComplete="one-time-code"
           value={pin}
           onChange={(event) => setPin(event.target.value)}
           placeholder="가족 PIN"
-          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none ring-emerald-300 focus:ring"
+          className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring"
         />
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        <button
-          type="submit"
-          className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
-        >
-          서류 열기
-        </button>
+        <button type="submit" className="rounded-full bg-[#566f55] px-5 py-3 text-sm font-semibold text-white">열기</button>
       </form>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-3xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-        현재 <strong>{stats}</strong>개를 가족이 함께 보고 있습니다. 서류는
-        가족 PIN 뒤에 보관되며, 잠금을 풀면 어떤 기기에서도 같은 파일을 열 수
-        있습니다.
+    <div className="space-y-6">
+      {checking && <div className="rounded-3xl bg-[#eef3ea] p-4 text-sm text-[#4d6450]">불러오는 중...</div>}
+      <div className="rounded-3xl bg-[#eef3ea] p-4 text-sm text-[#4d6450]">현재 {stats}개 업로드됨</div>
+      <div className="flex justify-end">
+        <button type="button" onClick={() => void handleLock()} className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">다시 잠그기</button>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4">
-        <p className="text-sm leading-6 text-slate-600">
-          주 관리자가 여기서 한 번 올리면, PIN을 아는 가족 모두 같은 서류를 볼
-          수 있습니다.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void handleLock()}
-            className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-          >
-            다시 잠그기
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleClearAll()}
-            className="rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-200"
-          >
-            공유 서류 모두 삭제
-          </button>
+      {error && <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+      <form onSubmit={saveDetails} className="grid gap-4 rounded-3xl border border-[#e3dccf] bg-white p-5 md:grid-cols-2">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">캐나다 개인 전화번호</label>
+          <input value={details.canadaPhoneNumber} onChange={(event) => setDetails((current) => ({ ...current, canadaPhoneNumber: event.target.value }))} placeholder="전화번호 입력" className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring" />
         </div>
-      </div>
-      {error && (
-        <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">
-          {error}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">차량 번호</label>
+          <input value={details.carNumber} onChange={(event) => setDetails((current) => ({ ...current, carNumber: event.target.value }))} placeholder="차량 번호 입력" className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring" />
         </div>
-      )}
+        <div className="md:col-span-2">
+          <button type="submit" disabled={busyKey === "details"} className="rounded-full bg-[#566f55] px-5 py-3 text-sm font-semibold text-white">{busyKey === "details" ? "저장 중..." : "공유 정보 저장"}</button>
+        </div>
+      </form>
       <div className="grid gap-4 md:grid-cols-2">
         {slots.map((slot) => {
           const document = docs[slot.id];
-          const isBusy = busySlot === slot.id || busySlot === "all";
-
+          const isBusy = busyKey === slot.id;
           return (
-            <article
-              key={slot.id}
-              className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm"
-            >
+            <article key={slot.id} className="rounded-3xl border border-[#e3dccf] bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {slot.person}
-                </h3>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  {slot.documentType}
-                </span>
+                <h3 className="text-lg font-semibold text-slate-900">{slot.documentType}</h3>
+                <span className="rounded-full bg-[#eef3ea] px-3 py-1 text-xs font-semibold text-[#566f55]">{slot.person}</span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {slot.description}
-              </p>
-              <label className="mt-4 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100">
-                <input
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  className="hidden"
-                  disabled={isBusy}
-                  onChange={(event) =>
-                    void handleSelect(slot.id, event.target.files?.[0] ?? null)
-                  }
-                />
-                {isBusy
-                  ? "처리 중..."
-                  : document
-                    ? "공유 파일 바꾸기"
-                    : "공유 파일 올리기"}
+              <p className="mt-2 text-sm text-slate-600">{slot.description}</p>
+              <label className="mt-4 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#ccd7c6] bg-[#f8f5ef] px-4 py-5 text-sm font-medium text-slate-700">
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" disabled={isBusy} onChange={(event) => void handleSelect(slot.id, event.target.files?.[0] ?? null)} />
+                {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
               </label>
               {document ? (
                 <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {document.name}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    업로드{" "}
-                    {new Date(document.uploadedAt).toLocaleString("ko-KR")}
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">{document.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">업로드 {new Date(document.uploadedAt).toLocaleString("ko-KR")}</p>
                   <div className="mt-3 flex gap-3">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => void handleOpen(slot.id)}
-                      className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
-                    >
-                      파일 열기
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => void handleRemove(slot.id)}
-                      className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300 disabled:opacity-60"
-                    >
-                      삭제
-                    </button>
+                    <button type="button" onClick={() => void handleOpen(slot.id)} className="rounded-full bg-[#566f55] px-4 py-2 text-sm font-semibold text-white">열기</button>
+                    <button type="button" onClick={() => void handleRemove(slot.id)} className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">삭제</button>
                   </div>
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-slate-500">
-                  아직 올린 공유 파일이 없습니다.
-                </p>
+                <p className="mt-4 text-sm text-slate-500">아직 업로드된 파일이 없습니다.</p>
               )}
             </article>
           );

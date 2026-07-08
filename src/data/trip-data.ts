@@ -1,7 +1,6 @@
 export type FamilyMember = {
   name: string;
   note?: string;
-  departureGroup?: string;
 };
 
 export type TripLeg = {
@@ -9,7 +8,6 @@ export type TripLeg = {
   time: string;
   description: string;
   location?: string;
-  reference?: string;
 };
 
 export type TripDay = {
@@ -20,55 +18,30 @@ export type TripDay = {
   stay: string;
   summary: string;
   legs: TripLeg[];
-  ticketLinks?: {
-    label: string;
-    href: string;
-  }[];
-};
-
-export type TravelDocument = {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  holder: string;
-  whenNeeded: string;
-  status: "ready" | "todo" | "check";
-  href?: string;
+  ticketLinks?: { label: string; href: string }[];
 };
 
 export type UploadSlot = {
   id: string;
   person: string;
-  documentType: "eTA" | "eTicket";
+  documentType: string;
   description: string;
+};
+
+export type SharedDetails = {
+  canadaPhoneNumber: string;
+  carNumber: string;
 };
 
 export const tripOverview = {
   title: "Canada Again",
-  destination: "온타리오, 캐나다",
+  destination: "Ontario, Canada",
   stayAddress: "1445 Coral Spgs Path, ON",
   family: [
-    {
-      name: "Yongwoon",
-      note: "Yireh와 나중 출국 · 함께 귀국",
-      departureGroup: "나중 출발",
-    },
-    {
-      name: "Miyoung",
-      note: "Yiel과 먼저 출국 · 함께 귀국",
-      departureGroup: "먼저 출발",
-    },
-    {
-      name: "Yireh",
-      note: "Yongwoon과 나중 출국 · 함께 귀국",
-      departureGroup: "나중 출발",
-    },
-    {
-      name: "Yiel",
-      note: "Miyoung과 먼저 출국 · 함께 귀국",
-      departureGroup: "먼저 출발",
-    },
+    { name: "Miyoung", note: "Yiel과 먼저 출국" },
+    { name: "Yiel", note: "Miyoung과 먼저 출국" },
+    { name: "Yongwoon", note: "Yireh와 나중 출국" },
+    { name: "Yireh", note: "Yongwoon과 나중 출국" },
   ] satisfies FamilyMember[],
 };
 
@@ -79,8 +52,7 @@ export const itinerary: TripDay[] = [
     title: "Miyoung · Yiel 출국",
     city: "인천(ICN) → 토론토(YYZ)",
     stay: "1445 Coral Spgs Path, ON",
-    summary:
-      "먼저 출발하는 2명의 출국편입니다. 인천 터미널 2에서 출발해 토론토 피어슨 터미널 3에 도착합니다.",
+    summary: "먼저 출발하는 2명의 출국 일정입니다.",
     legs: [
       {
         title: "인천 출발",
@@ -94,17 +66,8 @@ export const itinerary: TripDay[] = [
         description: "토론토 피어슨 국제공항 터미널 3 (YYZ)",
         location: "YYZ Terminal 3",
       },
-      {
-        title: "숙소 이동",
-        time: "도착 후",
-        description: "캐나다 유심 연결 후 숙소로 이동합니다.",
-        location: "1445 Coral Spgs Path, ON",
-      },
     ],
-    ticketLinks: [
-      { label: "Miyoung eTicket", href: "/documents" },
-      { label: "Yiel eTicket", href: "/documents" },
-    ],
+    ticketLinks: [{ label: "출국 eTicket 보기", href: "/documents" }],
   },
   {
     id: "outbound-later",
@@ -112,8 +75,7 @@ export const itinerary: TripDay[] = [
     title: "Yongwoon · Yireh 출국",
     city: "인천(ICN) → 토론토(YYZ)",
     stay: "1445 Coral Spgs Path, ON",
-    summary:
-      "나중에 출발하는 2명의 출국편입니다. 출발·도착 시각은 먼저 출발편과 같습니다.",
+    summary: "나중에 출발하는 2명의 출국 일정입니다.",
     legs: [
       {
         title: "인천 출발",
@@ -127,17 +89,8 @@ export const itinerary: TripDay[] = [
         description: "토론토 피어슨 국제공항 터미널 3 (YYZ)",
         location: "YYZ Terminal 3",
       },
-      {
-        title: "가족 합류",
-        time: "도착 후",
-        description: "먼저 도착한 가족과 숙소에서 만납니다.",
-        location: "1445 Coral Spgs Path, ON",
-      },
     ],
-    ticketLinks: [
-      { label: "Yongwoon eTicket", href: "/documents" },
-      { label: "Yireh eTicket", href: "/documents" },
-    ],
+    ticketLinks: [{ label: "출국 eTicket 보기", href: "/documents" }],
   },
   {
     id: "return-together",
@@ -145,102 +98,36 @@ export const itinerary: TripDay[] = [
     title: "가족 함께 귀국",
     city: "토론토(YYZ) → 인천(ICN)",
     stay: "귀국편",
-    summary: "가족 모두 함께 귀국합니다. 2026-08-14 토론토에서 출발해 다음날 인천에 도착합니다.",
+    summary: "가족 모두 함께 귀국합니다.",
     legs: [
       {
         title: "토론토 출발",
         time: "12:55",
-        description: "2026-08-14 · 토론토 피어슨 국제공항 터미널 3 (YYZ)",
+        description: "토론토 피어슨 국제공항 터미널 3 (YYZ)",
         location: "YYZ Terminal 3",
       },
       {
         title: "인천 도착",
         time: "16:30 (+1일)",
-        description: "2026-08-15 · 서울/인천국제공항 터미널 2 (ICN)",
+        description: "서울/인천국제공항 터미널 2 (ICN)",
         location: "ICN Terminal 2",
       },
     ],
-    ticketLinks: [
-      { label: "가족 귀국 eTicket", href: "/documents" },
-    ],
-  },
-];
-
-export const documents: TravelDocument[] = [
-  {
-    id: "family-eta",
-    title: "가족 eTA",
-    category: "입국",
-    description: "4명의 eTA 파일",
-    holder: "서류 페이지",
-    whenNeeded: "공항 / 입국",
-    status: "todo",
-  },
-  {
-    id: "family-eticket",
-    title: "가족 eTicket",
-    category: "항공",
-    description: "출국·귀국 eTicket",
-    holder: "서류 페이지",
-    whenNeeded: "체크인 / 탑승",
-    status: "todo",
+    ticketLinks: [{ label: "귀국 eTicket 보기", href: "/documents" }],
   },
 ];
 
 export const uploadSlots: UploadSlot[] = [
-  {
-    id: "eta-yongwoon",
-    person: "Yongwoon",
-    documentType: "eTA",
-    description: "Yongwoon의 eTA",
-  },
-  {
-    id: "eta-miyoung",
-    person: "Miyoung",
-    documentType: "eTA",
-    description: "Miyoung의 eTA",
-  },
-  {
-    id: "eta-yireh",
-    person: "Yireh",
-    documentType: "eTA",
-    description: "Yireh의 eTA",
-  },
-  {
-    id: "eta-yiel",
-    person: "Yiel",
-    documentType: "eTA",
-    description: "Yiel의 eTA",
-  },
-  {
-    id: "eticket-yongwoon",
-    person: "Yongwoon",
-    documentType: "eTicket",
-    description: "Yongwoon의 eTicket",
-  },
-  {
-    id: "eticket-miyoung",
-    person: "Miyoung",
-    documentType: "eTicket",
-    description: "Miyoung의 eTicket",
-  },
-  {
-    id: "eticket-yireh",
-    person: "Yireh",
-    documentType: "eTicket",
-    description: "Yireh의 eTicket",
-  },
-  {
-    id: "eticket-yiel",
-    person: "Yiel",
-    documentType: "eTicket",
-    description: "Yiel의 eTicket",
-  },
+  { id: "eta-yongwoon", person: "Yongwoon", documentType: "eTA", description: "Yongwoon eTA" },
+  { id: "eta-miyoung", person: "Miyoung", documentType: "eTA", description: "Miyoung eTA" },
+  { id: "eta-yireh", person: "Yireh", documentType: "eTA", description: "Yireh eTA" },
+  { id: "eta-yiel", person: "Yiel", documentType: "eTA", description: "Yiel eTA" },
+  { id: "eticket-outbound", person: "가족", documentType: "출국 eTicket", description: "출국 항공권 파일" },
+  { id: "eticket-return", person: "가족", documentType: "귀국 eTicket", description: "귀국 항공권 파일" },
+  { id: "car-reservation", person: "가족", documentType: "차량 예약 확인증", description: "렌터카 예약 확인 파일" },
 ];
 
-export const sharedTravelDetails = {
-  stayAddress: "1445 Coral Spgs Path, ON",
-  rentalCarNumber: "차량번호 입력 예정",
-  canadaPhoneNumber: "캐나다 유심 번호 입력 예정",
-  returnPlan: "2026-08-14 YYZ 12:55 → 2026-08-15 ICN 16:30",
+export const defaultSharedDetails: SharedDetails = {
+  canadaPhoneNumber: "",
+  carNumber: "",
 };

@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { del, get, list, put } from "@vercel/blob";
+import { defaultSharedDetails, type SharedDetails } from "@/data/trip-data";
 
 export type StoredDocumentMeta = {
   slotId: string;
@@ -14,10 +15,13 @@ type StoredDocumentRecord = StoredDocumentMeta & {
   dataUrl: string;
 };
 
-const META_PREFIX = "canada-family-docs";
+const DOC_PREFIX = "canada-family-docs";
+const DETAILS_PATH = "canada-family-shared-details.json";
 const LOCAL_DIR = path.join(process.cwd(), ".data", "shared-docs");
+const LOCAL_DETAILS = path.join(process.cwd(), ".data", "shared-details.json");
 
-const memoryStore = new Map<string, StoredDocumentRecord>();
+const memoryDocs = new Map<string, StoredDocumentRecord>();
+let memoryDetails: SharedDetails = defaultSharedDetails;
 
 function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
@@ -31,16 +35,13 @@ async function ensureLocalDir() {
   await mkdir(LOCAL_DIR, { recursive: true });
 }
 
-function localPath(slotId: string) {
+function localDocPath(slotId: string) {
   return path.join(LOCAL_DIR, `${slotId}.json`);
 }
 
 async function readBlobJson(pathname: string) {
   const result = await get(pathname, { access: "private" });
-  if (!result || !result.stream) {
-    return null;
-  }
-
+  if (!result || !result.stream) return null;
   const response = new Response(result.stream);
   const raw = await response.text();
   return JSON.parse(raw) as StoredDocumentRecord;
@@ -58,121 +59,138 @@ function toMeta(record: StoredDocumentRecord): StoredDocumentMeta {
 
 export async function listDocuments(): Promise<StoredDocumentMeta[]> {
   if (hasBlobStorage()) {
-    const result = await list({ prefix: `${META_PREFIX}/` });
+    const result = await list({ prefix: `${DOC_PREFIX}/` });
     const metas: StoredDocumentMeta[] = [];
-
     for (const blob of result.blobs) {
       const record = await readBlobJson(blob.pathname);
-      if (!record) {
-        continue;
-      }
-      metas.push(toMeta(record));
+      if (record) metas.push(toMeta(record));
     }
-
     return metas;
   }
 
   if (isVercelRuntime()) {
-    return Array.from(memoryStore.values()).map(toMeta);
+    return Array.from(memoryDocs.values()).map(toMeta);
   }
 
   try {
     await ensureLocalDir();
     const files = await readdir(LOCAL_DIR);
     const metas: StoredDocumentMeta[] = [];
-
     for (const file of files) {
-      if (!file.endsWith(".json")) {
-        continue;
-      }
-
-      const raw = await readFile(path.join(LOCAL_DIR, file), "utf8");
+      if (!file.endsWith('.json')) continue;
+      const raw = await readFile(path.join(LOCAL_DIR, file), 'utf8');
       const record = JSON.parse(raw) as StoredDocumentRecord;
       metas.push(toMeta(record));
     }
-
     return metas;
   } catch {
     return [];
   }
 }
 
-export async function getDocument(
-  slotId: string,
-): Promise<StoredDocumentRecord | null> {
-  if (hasBlobStorage()) {
-    return readBlobJson(`${META_PREFIX}/${slotId}.json`);
-  }
-
-  if (isVercelRuntime()) {
-    return memoryStore.get(slotId) ?? null;
-  }
-
+export async function getDocument(slotId: string): Promise<StoredDocumentRecord | null> {
+  if (hasBlobStorage()) return readBlobJson(`${DOC_PREFIX}/${slotId}.json`);
+  if (isVercelRuntime()) return memoryDocs.get(slotId) ?? null;
   try {
-    const raw = await readFile(localPath(slotId), "utf8");
+    const raw = await readFile(localDocPath(slotId), 'utf8');
     return JSON.parse(raw) as StoredDocumentRecord;
   } catch {
     return null;
   }
 }
 
-export async function saveDocument(input: {
-  slotId: string;
-  name: string;
-  type: string;
-  dataUrl: string;
-}) {
+export async function saveDocument(input: { slotId: string; name: string; type: string; dataUrl: string; }) {
   const record: StoredDocumentRecord = {
     slotId: input.slotId,
     name: input.name,
     type: input.type,
-    size: Buffer.byteLength(input.dataUrl, "utf8"),
+    size: Buffer.byteLength(input.dataUrl, 'utf8'),
     uploadedAt: new Date().toISOString(),
     dataUrl: input.dataUrl,
   };
 
   if (hasBlobStorage()) {
-    await put(`${META_PREFIX}/${input.slotId}.json`, JSON.stringify(record), {
-      access: "private",
+    await put(`${DOC_PREFIX}/${input.slotId}.json`, JSON.stringify(record), {
+      access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
-      contentType: "application/json",
+      contentType: 'application/json',
     });
     return toMeta(record);
   }
 
   if (isVercelRuntime()) {
-    memoryStore.set(input.slotId, record);
+    memoryDocs.set(input.slotId, record);
     return toMeta(record);
   }
 
   await ensureLocalDir();
-  await writeFile(localPath(input.slotId), JSON.stringify(record), "utf8");
+  await writeFile(localDocPath(input.slotId), JSON.stringify(record), 'utf8');
   return toMeta(record);
 }
 
 export async function deleteDocument(slotId: string) {
   if (hasBlobStorage()) {
-    const result = await list({ prefix: `${META_PREFIX}/${slotId}.json` });
-    if (result.blobs[0]) {
-      await del(result.blobs[0].url);
-    }
+    const result = await list({ prefix: `${DOC_PREFIX}/${slotId}.json` });
+    if (result.blobs[0]) await del(result.blobs[0].url);
     return;
   }
 
   if (isVercelRuntime()) {
-    memoryStore.delete(slotId);
+    memoryDocs.delete(slotId);
     return;
   }
 
   try {
-    await unlink(localPath(slotId));
-  } catch {
-    // already missing
-  }
+    await unlink(localDocPath(slotId));
+  } catch {}
 }
 
 export async function clearDocuments() {
   const docs = await listDocuments();
   await Promise.all(docs.map((doc) => deleteDocument(doc.slotId)));
+}
+
+export async function getSharedDetails(): Promise<SharedDetails> {
+  if (hasBlobStorage()) {
+    const result = await get(DETAILS_PATH, { access: 'private' });
+    if (!result || !result.stream) return defaultSharedDetails;
+    const raw = await new Response(result.stream).text();
+    return { ...defaultSharedDetails, ...(JSON.parse(raw) as SharedDetails) };
+  }
+
+  if (isVercelRuntime()) return memoryDetails;
+
+  try {
+    const raw = await readFile(LOCAL_DETAILS, 'utf8');
+    return { ...defaultSharedDetails, ...(JSON.parse(raw) as SharedDetails) };
+  } catch {
+    return defaultSharedDetails;
+  }
+}
+
+export async function saveSharedDetails(details: SharedDetails) {
+  const next = {
+    canadaPhoneNumber: details.canadaPhoneNumber.trim(),
+    carNumber: details.carNumber.trim(),
+  };
+
+  if (hasBlobStorage()) {
+    await put(DETAILS_PATH, JSON.stringify(next), {
+      access: 'private',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: 'application/json',
+    });
+    return next;
+  }
+
+  if (isVercelRuntime()) {
+    memoryDetails = next;
+    return next;
+  }
+
+  await mkdir(path.dirname(LOCAL_DETAILS), { recursive: true });
+  await writeFile(LOCAL_DETAILS, JSON.stringify(next), 'utf8');
+  return next;
 }

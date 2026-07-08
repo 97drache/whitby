@@ -39,20 +39,17 @@ export async function POST(request: Request) {
     const dataUrl = body.dataUrl ?? "";
 
     if (!ALLOWED_SLOT_IDS.has(slotId) || !name || !dataUrl.startsWith("data:")) {
-      return NextResponse.json({ error: "Invalid document upload." }, { status: 400 });
+      return NextResponse.json({ error: "올바르지 않은 업로드입니다." }, { status: 400 });
     }
 
     if (dataUrl.length > MAX_FILE_CHARS) {
-      return NextResponse.json(
-        { error: "File is too large. Please upload a smaller PDF or image." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "파일이 너무 큽니다." }, { status: 400 });
     }
 
     const document = await saveDocument({ slotId, name, type, dataUrl });
     return NextResponse.json({ document });
   } catch {
-    return NextResponse.json({ error: "Unable to save document." }, { status: 500 });
+    return NextResponse.json({ error: "문서를 저장할 수 없습니다." }, { status: 500 });
   }
 }
 
@@ -72,12 +69,12 @@ export async function DELETE(request: Request) {
     }
 
     if (!slotId || !ALLOWED_SLOT_IDS.has(slotId)) {
-      return NextResponse.json({ error: "Invalid document slot." }, { status: 400 });
+      return NextResponse.json({ error: "올바르지 않은 문서 구분입니다." }, { status: 400 });
     }
 
     await deleteDocument(slotId);
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ error: "Unable to delete document." }, { status: 500 });
+    return NextResponse.json({ error: "문서를 삭제할 수 없습니다." }, { status: 500 });
   }
 }
