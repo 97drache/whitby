@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   clearDocuments,
   deleteDocument,
+  getStorageInfo,
   listDocuments,
   saveDocument,
 } from "@/lib/doc-store";
@@ -17,7 +18,7 @@ export async function GET() {
   }
 
   const documents = await listDocuments();
-  return NextResponse.json({ documents });
+  return NextResponse.json({ documents, storage: getStorageInfo() });
 }
 
 export async function POST(request: Request) {

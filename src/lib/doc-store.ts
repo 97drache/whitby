@@ -23,12 +23,43 @@ const LOCAL_DETAILS = path.join(process.cwd(), ".data", "shared-details.json");
 const memoryDocs = new Map<string, StoredDocumentRecord>();
 let memoryDetails: SharedDetails = defaultSharedDetails;
 
+export type StorageInfo = {
+  mode: "blob" | "local" | "ephemeral";
+  persistent: boolean;
+  message: string;
+};
+
 function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
 function isVercelRuntime() {
   return process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+}
+
+export function getStorageInfo(): StorageInfo {
+  if (hasBlobStorage()) {
+    return {
+      mode: "blob",
+      persistent: true,
+      message: "Vercel Blob에 저장되어 배포 후에도 유지됩니다.",
+    };
+  }
+
+  if (isVercelRuntime()) {
+    return {
+      mode: "ephemeral",
+      persistent: false,
+      message:
+        "영구 저장소가 연결되지 않았습니다. 배포할 때마다 업로드한 서류가 사라집니다. Vercel 대시보드에서 Blob 스토어를 연결해 주세요.",
+    };
+  }
+
+  return {
+    mode: "local",
+    persistent: true,
+    message: "로컬 .data 폴더에 저장됩니다.",
+  };
 }
 
 async function ensureLocalDir() {

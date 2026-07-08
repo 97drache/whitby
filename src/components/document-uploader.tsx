@@ -11,6 +11,12 @@ type DocumentMeta = {
   uploadedAt: string;
 };
 
+type StorageInfo = {
+  mode: "blob" | "local" | "ephemeral";
+  persistent: boolean;
+  message: string;
+};
+
 type DocumentUploaderProps = {
   slots: UploadSlot[];
 };
@@ -20,6 +26,15 @@ const EMPTY_DETAILS: SharedDetails = {
   carNumber: "",
 };
 
+const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
+  eta: "eTA",
+  eticket: "왕복 eTicket",
+  hotel: "호텔 예약",
+  car: "차량 예약",
+};
+
+const CATEGORY_ORDER: UploadSlot["category"][] = ["eta", "eticket", "hotel", "car"];
+
 export function DocumentUploader({ slots }: DocumentUploaderProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -28,17 +43,31 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [docs, setDocs] = useState<Record<string, DocumentMeta | null>>({});
   const [details, setDetails] = useState<SharedDetails>(EMPTY_DETAILS);
+  const [storage, setStorage] = useState<StorageInfo | null>(null);
 
   const stats = useMemo(() => {
     const uploaded = slots.filter((slot) => docs[slot.id]).length;
     return `${uploaded}/${slots.length}`;
   }, [docs, slots]);
 
+  const groupedSlots = useMemo(() => {
+    return CATEGORY_ORDER.map((category) => ({
+      category,
+      label: CATEGORY_LABELS[category],
+      slots: slots.filter((slot) => slot.category === category),
+    })).filter((group) => group.slots.length > 0);
+  }, [slots]);
+
   async function refreshAll() {
     setChecking(true);
     setError("");
 
     try {
+      const storageResponse = await fetch("/api/storage-status");
+      if (storageResponse.ok) {
+        setStorage((await storageResponse.json()) as StorageInfo);
+      }
+
       const docResponse = await fetch("/api/documents");
       if (docResponse.status === 401) {
         setUnlocked(false);
@@ -55,7 +84,10 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         throw new Error("공유 정보를 불러올 수 없습니다.");
       }
 
-      const docPayload = (await docResponse.json()) as { documents: DocumentMeta[] };
+      const docPayload = (await docResponse.json()) as {
+        documents: DocumentMeta[];
+        storage?: StorageInfo;
+      };
       const detailPayload = (await detailResponse.json()) as { details: SharedDetails };
       const nextDocs: Record<string, DocumentMeta | null> = {};
       for (const slot of slots) {
@@ -64,6 +96,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       }
       setDocs(nextDocs);
       setDetails(detailPayload.details);
+      if (docPayload.storage) setStorage(docPayload.storage);
       setUnlocked(true);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "불러오기에 실패했습니다.");
@@ -184,10 +217,13 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
   if (!unlocked) {
     return (
-      <form onSubmit={handleUnlock} className="space-y-4 rounded-3xl border border-[#e3dccf] bg-white p-6">
+      <form
+        onSubmit={handleUnlock}
+        className="space-y-4 rounded-xl border border-[#d7e0ea] bg-white p-6"
+      >
         <div>
-          <p className="text-xs font-semibold tracking-[0.18em] text-[#6a7d61]">FAMILY PIN</p>
-          <h3 className="mt-2 text-xl font-semibold text-slate-950">가족 PIN으로 서류 열기</h3>
+          <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
+          <h3 className="mt-2 text-xl font-bold text-[#0f1c2e]">가족 PIN으로 서류 열기</h3>
         </div>
         <input
           type="password"
@@ -195,66 +231,151 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           value={pin}
           onChange={(event) => setPin(event.target.value)}
           placeholder="가족 PIN"
-          className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring"
+          className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
         />
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        <button type="submit" className="rounded-full bg-[#566f55] px-5 py-3 text-sm font-semibold text-white">열기</button>
+        <button
+          type="submit"
+          className="rounded-lg bg-[#d52b1e] px-5 py-3 text-sm font-bold text-white"
+        >
+          열기
+        </button>
       </form>
     );
   }
 
   return (
     <div className="space-y-6">
-      {checking && <div className="rounded-3xl bg-[#eef3ea] p-4 text-sm text-[#4d6450]">불러오는 중...</div>}
-      <div className="rounded-3xl bg-[#eef3ea] p-4 text-sm text-[#4d6450]">현재 {stats}개 업로드됨</div>
-      <div className="flex justify-end">
-        <button type="button" onClick={() => void handleLock()} className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">다시 잠그기</button>
+      {checking && (
+        <div className="rounded-xl bg-[#eef3f9] p-4 text-sm text-[#1a3550]">불러오는 중...</div>
+      )}
+
+      {storage && !storage.persistent && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+          <p className="font-bold">서류가 배포 후 사라질 수 있습니다</p>
+          <p className="mt-1">{storage.message}</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#eef3f9] p-4 text-sm text-[#1a3550]">
+        <span>현재 {stats}개 업로드됨</span>
+        {storage?.persistent && <span>{storage.message}</span>}
+        <button
+          type="button"
+          onClick={() => void handleLock()}
+          className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0f1c2e] shadow-sm"
+        >
+          다시 잠그기
+        </button>
       </div>
-      {error && <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
-      <form onSubmit={saveDetails} className="grid gap-4 rounded-3xl border border-[#e3dccf] bg-white p-5 md:grid-cols-2">
+
+      {error && <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+
+      <form
+        onSubmit={saveDetails}
+        className="grid gap-4 rounded-xl border border-[#d7e0ea] bg-white p-5 md:grid-cols-2"
+      >
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">캐나다 개인 전화번호</label>
-          <input value={details.canadaPhoneNumber} onChange={(event) => setDetails((current) => ({ ...current, canadaPhoneNumber: event.target.value }))} placeholder="전화번호 입력" className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring" />
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            캐나다 개인 전화번호
+          </label>
+          <input
+            value={details.canadaPhoneNumber}
+            onChange={(event) =>
+              setDetails((current) => ({
+                ...current,
+                canadaPhoneNumber: event.target.value,
+              }))
+            }
+            placeholder="전화번호 입력"
+            className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+          />
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">차량 번호</label>
-          <input value={details.carNumber} onChange={(event) => setDetails((current) => ({ ...current, carNumber: event.target.value }))} placeholder="차량 번호 입력" className="w-full rounded-2xl border border-[#e3dccf] px-4 py-3 outline-none ring-[#ccd7c6] focus:ring" />
+          <input
+            value={details.carNumber}
+            onChange={(event) =>
+              setDetails((current) => ({ ...current, carNumber: event.target.value }))
+            }
+            placeholder="차량 번호 입력"
+            className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+          />
         </div>
         <div className="md:col-span-2">
-          <button type="submit" disabled={busyKey === "details"} className="rounded-full bg-[#566f55] px-5 py-3 text-sm font-semibold text-white">{busyKey === "details" ? "저장 중..." : "공유 정보 저장"}</button>
+          <button
+            type="submit"
+            disabled={busyKey === "details"}
+            className="rounded-lg bg-[#0f1c2e] px-5 py-3 text-sm font-bold text-white"
+          >
+            {busyKey === "details" ? "저장 중..." : "공유 정보 저장"}
+          </button>
         </div>
       </form>
-      <div className="grid gap-4 md:grid-cols-2">
-        {slots.map((slot) => {
-          const document = docs[slot.id];
-          const isBusy = busyKey === slot.id;
-          return (
-            <article key={slot.id} className="rounded-3xl border border-[#e3dccf] bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-slate-900">{slot.documentType}</h3>
-                <span className="rounded-full bg-[#eef3ea] px-3 py-1 text-xs font-semibold text-[#566f55]">{slot.person}</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-600">{slot.description}</p>
-              <label className="mt-4 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#ccd7c6] bg-[#f8f5ef] px-4 py-5 text-sm font-medium text-slate-700">
-                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="hidden" disabled={isBusy} onChange={(event) => void handleSelect(slot.id, event.target.files?.[0] ?? null)} />
-                {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
-              </label>
-              {document ? (
-                <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-900">{document.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">업로드 {new Date(document.uploadedAt).toLocaleString("ko-KR")}</p>
-                  <div className="mt-3 flex gap-3">
-                    <button type="button" onClick={() => void handleOpen(slot.id)} className="rounded-full bg-[#566f55] px-4 py-2 text-sm font-semibold text-white">열기</button>
-                    <button type="button" onClick={() => void handleRemove(slot.id)} className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">삭제</button>
+
+      {groupedSlots.map((group) => (
+        <section key={group.category} className="space-y-4">
+          <h3 className="text-lg font-bold text-[#0f1c2e]">{group.label}</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {group.slots.map((slot) => {
+              const document = docs[slot.id];
+              const isBusy = busyKey === slot.id;
+              return (
+                <article
+                  key={slot.id}
+                  className="ticket-card rounded-lg p-5 pl-6"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-base font-bold text-[#0f1c2e]">{slot.documentType}</h4>
+                    <span className="rounded-full bg-[#eef3f9] px-3 py-1 text-xs font-semibold text-[#1a3550]">
+                      {slot.person}
+                    </span>
                   </div>
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-slate-500">아직 업로드된 파일이 없습니다.</p>
-              )}
-            </article>
-          );
-        })}
-      </div>
+                  <p className="mt-2 text-sm text-slate-600">{slot.description}</p>
+                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#c5d3e2] bg-[#f8fafc] px-4 py-5 text-sm font-medium text-slate-700">
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp"
+                      className="hidden"
+                      disabled={isBusy}
+                      onChange={(event) =>
+                        void handleSelect(slot.id, event.target.files?.[0] ?? null)
+                      }
+                    />
+                    {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
+                  </label>
+                  {document ? (
+                    <div className="mt-4 rounded-lg bg-[#f8fafc] p-4">
+                      <p className="text-sm font-semibold text-slate-900">{document.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        업로드 {new Date(document.uploadedAt).toLocaleString("ko-KR")}
+                      </p>
+                      <div className="mt-3 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleOpen(slot.id)}
+                          className="rounded-lg bg-[#d52b1e] px-4 py-2 text-sm font-semibold text-white"
+                        >
+                          열기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleRemove(slot.id)}
+                          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-slate-500">아직 업로드된 파일이 없습니다.</p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

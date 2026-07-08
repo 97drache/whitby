@@ -14,18 +14,18 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/60">
+    <section className="ticket-card rounded-xl p-6 sm:p-7">
       {(eyebrow || description) && (
-        <div className="mb-5 space-y-2">
+        <div className="mb-6 space-y-2 pl-3">
           {eyebrow && (
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#d52b1e]">
               {eyebrow}
             </p>
           )}
           <div>
-            <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
+            <h2 className="text-2xl font-bold text-[#0f1c2e]">{title}</h2>
             {description && (
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-7 text-slate-600">
                 {description}
               </p>
             )}
@@ -33,9 +33,9 @@ export function SectionCard({
         </div>
       )}
       {!eyebrow && !description && (
-        <h2 className="mb-5 text-xl font-semibold text-slate-950">{title}</h2>
+        <h2 className="mb-6 pl-3 text-2xl font-bold text-[#0f1c2e]">{title}</h2>
       )}
-      {children}
+      <div className="pl-3">{children}</div>
     </section>
   );
 }

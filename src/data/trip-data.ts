@@ -26,12 +26,15 @@ export type UploadSlot = {
   person: string;
   documentType: string;
   description: string;
+  category: "eta" | "eticket" | "hotel" | "car";
 };
 
 export type SharedDetails = {
   canadaPhoneNumber: string;
   carNumber: string;
 };
+
+const familyMembers = ["Yongwoon", "Miyoung", "Yireh", "Yiel"] as const;
 
 export const tripOverview = {
   title: "Canada Again",
@@ -67,7 +70,30 @@ export const itinerary: TripDay[] = [
         location: "YYZ Terminal 3",
       },
     ],
-    ticketLinks: [{ label: "출국 eTicket 보기", href: "/documents" }],
+    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
+  },
+  {
+    id: "incheon-airport-hotel",
+    date: "2026-08-05",
+    title: "인천공항 호텔 숙박",
+    city: "인천",
+    stay: "Howard Johnson by Wyndham Incheon Airport",
+    summary: "Yongwoon · Yireh — 출국 전날 인천공항 근처에서 숙박합니다.",
+    legs: [
+      {
+        title: "체크인",
+        time: "8월 5일 15:00",
+        description: "Howard Johnson by Wyndham Incheon Airport",
+        location: "인천",
+      },
+      {
+        title: "체크아웃",
+        time: "8월 6일 11:00",
+        description: "출국 당일 호텔에서 하원 후 공항으로 이동",
+        location: "인천",
+      },
+    ],
+    ticketLinks: [{ label: "호텔 예약 확인서", href: "/documents" }],
   },
   {
     id: "outbound-later",
@@ -90,7 +116,30 @@ export const itinerary: TripDay[] = [
         location: "YYZ Terminal 3",
       },
     ],
-    ticketLinks: [{ label: "출국 eTicket 보기", href: "/documents" }],
+    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
+  },
+  {
+    id: "toronto-airport-hotel",
+    date: "2026-08-13",
+    title: "토론토공항 호텔 숙박",
+    city: "미시소가 (ON)",
+    stay: "Hilton Toronto Airport Hotel & Suites",
+    summary: "가족 모두 귀국 전날 토론토 공항 근처에서 숙박합니다.",
+    legs: [
+      {
+        title: "체크인",
+        time: "8월 13일 15:00",
+        description: "Hilton Toronto Airport Hotel & Suites",
+        location: "Mississauga, ON",
+      },
+      {
+        title: "체크아웃",
+        time: "8월 14일 12:00",
+        description: "귀국 당일 호텔에서 하원 후 공항으로 이동",
+        location: "Mississauga, ON",
+      },
+    ],
+    ticketLinks: [{ label: "호텔 예약 확인서", href: "/documents" }],
   },
   {
     id: "return-together",
@@ -113,18 +162,55 @@ export const itinerary: TripDay[] = [
         location: "ICN Terminal 2",
       },
     ],
-    ticketLinks: [{ label: "귀국 eTicket 보기", href: "/documents" }],
+    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
   },
 ];
 
 export const uploadSlots: UploadSlot[] = [
-  { id: "eta-yongwoon", person: "Yongwoon", documentType: "eTA", description: "Yongwoon eTA" },
-  { id: "eta-miyoung", person: "Miyoung", documentType: "eTA", description: "Miyoung eTA" },
-  { id: "eta-yireh", person: "Yireh", documentType: "eTA", description: "Yireh eTA" },
-  { id: "eta-yiel", person: "Yiel", documentType: "eTA", description: "Yiel eTA" },
-  { id: "eticket-outbound", person: "가족", documentType: "출국 eTicket", description: "출국 항공권 파일" },
-  { id: "eticket-return", person: "가족", documentType: "귀국 eTicket", description: "귀국 항공권 파일" },
-  { id: "car-reservation", person: "가족", documentType: "차량 예약 확인증", description: "렌터카 예약 확인 파일" },
+  ...familyMembers.map((person) => ({
+    id: `eta-${person.toLowerCase()}`,
+    person,
+    documentType: "eTA",
+    description: `${person} eTA`,
+    category: "eta" as const,
+  })),
+  ...familyMembers.flatMap((person) => [
+    {
+      id: `eticket-outbound-${person.toLowerCase()}`,
+      person,
+      documentType: "출국 eTicket",
+      description: `${person} 출국 항공권`,
+      category: "eticket" as const,
+    },
+    {
+      id: `eticket-return-${person.toLowerCase()}`,
+      person,
+      documentType: "귀국 eTicket",
+      description: `${person} 귀국 항공권`,
+      category: "eticket" as const,
+    },
+  ]),
+  {
+    id: "hotel-incheon-airport",
+    person: "Yongwoon · Yireh",
+    documentType: "인천공항 호텔 예약",
+    description: "Howard Johnson by Wyndham Incheon Airport 확인서",
+    category: "hotel",
+  },
+  {
+    id: "hotel-toronto-airport",
+    person: "가족",
+    documentType: "토론토공항 호텔 예약",
+    description: "Hilton Toronto Airport Hotel & Suites 확인서",
+    category: "hotel",
+  },
+  {
+    id: "car-reservation",
+    person: "가족",
+    documentType: "차량 예약 확인증",
+    description: "렌터카 예약 확인 파일",
+    category: "car",
+  },
 ];
 
 export const defaultSharedDetails: SharedDetails = {
