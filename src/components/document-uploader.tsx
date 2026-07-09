@@ -226,14 +226,9 @@ export function DocumentUploader({
     setBusyKey(slotId);
     setError("");
     try {
-      const response = await fetch(`/api/documents/${slotId}`);
-      if (!response.ok) throw new Error("파일을 열 수 없습니다.");
-      const payload = (await response.json()) as { dataUrl: string; name: string };
       const link = document.createElement("a");
-      link.href = payload.dataUrl;
-      link.target = "_blank";
+      link.href = `/api/documents/${slotId}?format=file&download=1`;
       link.rel = "noreferrer";
-      link.download = payload.name;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -429,7 +424,7 @@ export function DocumentUploader({
                           onClick={() => void handleOpen(slot.id)}
                           className="btn-primary"
                         >
-                          열기
+                          다운로드
                         </button>
                         {canManage && (
                           <button

@@ -150,8 +150,7 @@ export function DocumentViewer({ slotIds }: DocumentViewerProps) {
                 {document.person} · {document.name}
               </p>
               <a
-                href={document.dataUrl}
-                download={document.name}
+                href={`/api/documents/${document.slotId}?format=file&download=1`}
                 className="btn-primary mt-3 inline-flex"
               >
                 다운로드
