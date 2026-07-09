@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { FamilyMemberKey } from "@/data/trip-data";
-import { itinerary, tripOverview } from "@/data/trip-data";
+import { itinerary, rentalCar, tripOverview } from "@/data/trip-data";
 import { getSharedDetails } from "@/lib/doc-store";
 
 export default async function Home() {
@@ -66,7 +66,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="grid gap-4 border-t border-[#f7e4e2] p-6 sm:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-4 border-t border-[#f7e4e2] p-6 sm:grid-cols-2">
           <div className="rounded-xl border border-[#f0d4d2] bg-white p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#94a3b8]">
               Stay
@@ -75,14 +75,24 @@ export default async function Home() {
               {tripOverview.stayAddress}
             </p>
           </div>
-          <div className="flex gap-3">
-            <Link href="/itinerary" className="btn-primary flex-1">
-              여정 보기
-            </Link>
-            <Link href="/documents" className="btn-secondary flex-1">
-              서류 열기
-            </Link>
+          <div className="rounded-xl border border-[#f0d4d2] bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#94a3b8]">
+              Rental Car
+            </p>
+            <p className="mt-2 text-lg font-bold text-[#1f2937]">{rentalCar.model}</p>
+            <p className="mt-2 text-sm text-[#64748b]">{rentalCar.details}</p>
+            <p className="mt-2 text-sm text-[#334155]">
+              7/20 10:00 픽업 · 8/13 반납
+            </p>
           </div>
+        </div>
+        <div className="flex gap-3 border-t border-[#f7e4e2] px-6 pb-6">
+          <Link href="/itinerary" className="btn-primary flex-1">
+            여정 보기
+          </Link>
+          <Link href="/documents" className="btn-secondary flex-1">
+            서류 열기
+          </Link>
         </div>
       </section>
 

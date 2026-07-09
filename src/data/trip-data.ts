@@ -46,6 +46,17 @@ export function documentViewPath(slotIds: string[]) {
   return `/documents/view?slots=${encodeURIComponent(slotIds.join(","))}`;
 }
 
+export const rentalCar = {
+  model: "2025 Nissan Rogue S AWD",
+  details: "Gas · 5 seats · Automatic",
+  pickupDate: "2026-07-20",
+  pickupTime: "10:00",
+  pickupAddress: "863 Kipling Ave, Etobicoke, ON, M8Z 5H1, Canada",
+  returnDate: "2026-08-13",
+  returnNote: "호텔 체크인 전 반납",
+  returnAddress: "863 Kipling Ave, Etobicoke, ON, M8Z 5H1, Canada",
+};
+
 export const tripOverview = {
   title: "Canada Again",
   destination: "Ontario, Canada",
@@ -65,7 +76,8 @@ export const itinerary: TripDay[] = [
     title: "Miyoung · Yiel 출국",
     city: "인천(ICN) → 토론토(YYZ)",
     stay: "1445 Coral Spgs Path, ON",
-    summary: "먼저 출발하는 2명의 출국 일정입니다.",
+    summary:
+      "먼저 출발하는 2명이 토론토 도착 후 렌터카를 픽업해 숙소로 이동합니다.",
     legs: [
       {
         title: "인천 출발",
@@ -79,12 +91,19 @@ export const itinerary: TripDay[] = [
         description: "토론토 피어슨 국제공항 터미널 3 (YYZ)",
         location: "YYZ Terminal 3",
       },
+      {
+        title: "렌터카 픽업",
+        time: "10:00",
+        description: `${rentalCar.model} · ${rentalCar.details}`,
+        location: rentalCar.pickupAddress,
+      },
     ],
     ticketLinks: [
       {
         label: "eTicket 보기",
         slotIds: ["eticket-outbound-miyoung", "eticket-outbound-yiel"],
       },
+      { label: "차량 예약 확인서", slotIds: ["car-reservation"] },
     ],
   },
   {
@@ -144,8 +163,15 @@ export const itinerary: TripDay[] = [
     title: "토론토공항 호텔 숙박",
     city: "미시소가 (ON)",
     stay: "Hilton Toronto Airport Hotel & Suites",
-    summary: "가족 모두 귀국 전날 토론토 공항 근처에서 숙박합니다.",
+    summary:
+      "가족 모두 귀국 전날 렌터카를 반납한 뒤, 토론토 공항 근처 호텔에 숙박합니다.",
     legs: [
+      {
+        title: "렌터카 반납",
+        time: "8월 13일 (호텔 체크인 전)",
+        description: `${rentalCar.model} · ${rentalCar.returnNote}`,
+        location: rentalCar.returnAddress,
+      },
       {
         title: "체크인",
         time: "8월 13일 15:00",
@@ -159,7 +185,10 @@ export const itinerary: TripDay[] = [
         location: "Mississauga, ON",
       },
     ],
-    ticketLinks: [{ label: "호텔 예약 확인서", slotIds: ["hotel-toronto-airport"] }],
+    ticketLinks: [
+      { label: "호텔 예약 확인서", slotIds: ["hotel-toronto-airport"] },
+      { label: "차량 예약 확인서", slotIds: ["car-reservation"] },
+    ],
   },
   {
     id: "return-together",
@@ -238,7 +267,7 @@ export const uploadSlots: UploadSlot[] = [
     id: "car-reservation",
     person: "가족",
     documentType: "차량 예약 확인증",
-    description: "렌터카 예약 확인 파일",
+    description: "2025 Nissan Rogue S AWD · 863 Kipling Ave, Etobicoke 픽업",
     category: "car",
   },
   {
