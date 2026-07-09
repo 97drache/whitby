@@ -32,19 +32,53 @@ export type StorageInfo = {
     hasReadWriteToken: boolean;
     hasStoreId: boolean;
     hasOidcToken: boolean;
+    readWriteTokenKey?: string;
+    storeIdKey?: string;
   };
 };
 
+type BlobEnvSuffix = "READ_WRITE_TOKEN" | "STORE_ID";
+
+function findBlobEnvKey(suffix: BlobEnvSuffix) {
+  const standard = suffix === "READ_WRITE_TOKEN" ? "BLOB_READ_WRITE_TOKEN" : "BLOB_STORE_ID";
+  if (process.env[standard]) return standard;
+
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith("BLOB_") && key.endsWith(`_${suffix}`) && process.env[key]) {
+      return key;
+    }
+  }
+
+  return undefined;
+}
+
+function readBlobEnv(suffix: BlobEnvSuffix) {
+  const key = findBlobEnvKey(suffix);
+  return key ? process.env[key] : undefined;
+}
+
+function getBlobClientOptions() {
+  const token = readBlobEnv("READ_WRITE_TOKEN");
+  const storeId = readBlobEnv("STORE_ID");
+  const options: { token?: string; storeId?: string } = {};
+
+  if (token) options.token = token;
+  if (storeId) options.storeId = storeId;
+
+  return options;
+}
+
 function hasBlobStorage() {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return true;
-  // Vercel-linked Blob stores authenticate with BLOB_STORE_ID + VERCEL_OIDC_TOKEN.
-  if (process.env.BLOB_STORE_ID && isVercelRuntime()) return true;
+  const { token, storeId } = getBlobClientOptions();
+  if (token) return true;
+  if (storeId && isVercelRuntime()) return true;
   return false;
 }
 
 function getBlobAuthMethod() {
-  if (process.env.BLOB_STORE_ID && isVercelRuntime()) return "oidc";
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "token";
+  const { token, storeId } = getBlobClientOptions();
+  if (storeId && isVercelRuntime()) return "oidc";
+  if (token) return "token";
   return null;
 }
 
@@ -53,11 +87,15 @@ function isVercelRuntime() {
 }
 
 export function getStorageInfo(): StorageInfo {
+  const readWriteTokenKey = findBlobEnvKey("READ_WRITE_TOKEN");
+  const storeIdKey = findBlobEnvKey("STORE_ID");
   const checks = {
     vercelRuntime: isVercelRuntime(),
-    hasReadWriteToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    hasStoreId: Boolean(process.env.BLOB_STORE_ID),
+    hasReadWriteToken: Boolean(readWriteTokenKey),
+    hasStoreId: Boolean(storeIdKey),
     hasOidcToken: Boolean(process.env.VERCEL_OIDC_TOKEN),
+    readWriteTokenKey,
+    storeIdKey,
   };
 
   if (hasBlobStorage()) {
@@ -100,7 +138,10 @@ function localDocPath(slotId: string) {
 }
 
 async function readBlobJson(pathname: string) {
-  const result = await get(pathname, { access: "private" });
+  const result = await get(pathname, {
+    ...getBlobClientOptions(),
+    access: "private",
+  });
   if (!result || !result.stream) return null;
   const response = new Response(result.stream);
   const raw = await response.text();
@@ -119,7 +160,7 @@ function toMeta(record: StoredDocumentRecord): StoredDocumentMeta {
 
 export async function listDocuments(): Promise<StoredDocumentMeta[]> {
   if (hasBlobStorage()) {
-    const result = await list({ prefix: `${DOC_PREFIX}/` });
+    const result = await list({ prefix: `${DOC_PREFIX}/`, ...getBlobClientOptions() });
     const metas: StoredDocumentMeta[] = [];
     for (const blob of result.blobs) {
       const record = await readBlobJson(blob.pathname);
@@ -171,6 +212,7 @@ export async function saveDocument(input: { slotId: string; name: string; type: 
 
   if (hasBlobStorage()) {
     await put(`${DOC_PREFIX}/${input.slotId}.json`, JSON.stringify(record), {
+      ...getBlobClientOptions(),
       access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -191,8 +233,8 @@ export async function saveDocument(input: { slotId: string; name: string; type: 
 
 export async function deleteDocument(slotId: string) {
   if (hasBlobStorage()) {
-    const result = await list({ prefix: `${DOC_PREFIX}/${slotId}.json` });
-    if (result.blobs[0]) await del(result.blobs[0].url);
+    const result = await list({ prefix: `${DOC_PREFIX}/${slotId}.json`, ...getBlobClientOptions() });
+    if (result.blobs[0]) await del(result.blobs[0].url, getBlobClientOptions());
     return;
   }
 
@@ -213,7 +255,7 @@ export async function clearDocuments() {
 
 export async function getSharedDetails(): Promise<SharedDetails> {
   if (hasBlobStorage()) {
-    const result = await get(DETAILS_PATH, { access: 'private' });
+    const result = await get(DETAILS_PATH, { ...getBlobClientOptions(), access: 'private' });
     if (!result || !result.stream) return defaultSharedDetails;
     const raw = await new Response(result.stream).text();
     return { ...defaultSharedDetails, ...(JSON.parse(raw) as SharedDetails) };
@@ -237,6 +279,7 @@ export async function saveSharedDetails(details: SharedDetails) {
 
   if (hasBlobStorage()) {
     await put(DETAILS_PATH, JSON.stringify(next), {
+      ...getBlobClientOptions(),
       access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
