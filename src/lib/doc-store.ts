@@ -27,10 +27,25 @@ export type StorageInfo = {
   mode: "blob" | "local" | "ephemeral";
   persistent: boolean;
   message: string;
+  checks?: {
+    vercelRuntime: boolean;
+    hasReadWriteToken: boolean;
+    hasStoreId: boolean;
+    hasOidcToken: boolean;
+  };
 };
 
 function hasBlobStorage() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  if (process.env.BLOB_READ_WRITE_TOKEN) return true;
+  // Vercel-linked Blob stores authenticate with BLOB_STORE_ID + VERCEL_OIDC_TOKEN.
+  if (process.env.BLOB_STORE_ID && isVercelRuntime()) return true;
+  return false;
+}
+
+function getBlobAuthMethod() {
+  if (process.env.BLOB_STORE_ID && isVercelRuntime()) return "oidc";
+  if (process.env.BLOB_READ_WRITE_TOKEN) return "token";
+  return null;
 }
 
 function isVercelRuntime() {
@@ -38,11 +53,23 @@ function isVercelRuntime() {
 }
 
 export function getStorageInfo(): StorageInfo {
+  const checks = {
+    vercelRuntime: isVercelRuntime(),
+    hasReadWriteToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    hasStoreId: Boolean(process.env.BLOB_STORE_ID),
+    hasOidcToken: Boolean(process.env.VERCEL_OIDC_TOKEN),
+  };
+
   if (hasBlobStorage()) {
+    const authMethod = getBlobAuthMethod();
     return {
       mode: "blob",
       persistent: true,
-      message: "Vercel Blob에 저장되어 배포 후에도 유지됩니다.",
+      message:
+        authMethod === "oidc"
+          ? "Vercel Blob(OIDC)에 저장되어 배포 후에도 유지됩니다."
+          : "Vercel Blob에 저장되어 배포 후에도 유지됩니다.",
+      checks,
     };
   }
 
@@ -52,6 +79,7 @@ export function getStorageInfo(): StorageInfo {
       persistent: false,
       message:
         "영구 저장소가 연결되지 않았습니다. 배포할 때마다 업로드한 서류가 사라집니다. Vercel 대시보드에서 Blob 스토어를 연결해 주세요.",
+      checks,
     };
   }
 
@@ -59,6 +87,7 @@ export function getStorageInfo(): StorageInfo {
     mode: "local",
     persistent: true,
     message: "로컬 .data 폴더에 저장됩니다.",
+    checks,
   };
 }
 

@@ -26,7 +26,9 @@ Vercel에 배포할 때 **Blob 스토어를 연결하지 않으면** 업로드�
 
 1. [Vercel 대시보드](https://vercel.com/dashboard) → 프로젝트 선택
 2. **Storage** → **Create Database** → **Blob** 선택
-3. 프로젝트에 연결하면 `BLOB_READ_WRITE_TOKEN`이 자동으로 설정됩니다
+3. 프로젝트에 연결하면 아래 환경 변수가 자동 설정됩니다
+   - 최신 방식: `BLOB_STORE_ID` + `VERCEL_OIDC_TOKEN`
+   - 또는: `BLOB_READ_WRITE_TOKEN`
 4. 다시 배포하면 서류가 Blob에 영구 저장됩니다
 
 로컬 개발에서는 `.data` 폴더에 저장됩니다.
