@@ -13,11 +13,11 @@ export default function DocumentsPage() {
         <DocumentUploader slots={uploadSlots} />
       </SectionCard>
       <SectionCard title="숙소" eyebrow="Stay">
-        <div className="rounded-xl border border-[#d7e0ea] bg-[#f8fafc] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <div className="rounded-xl border border-[#f0d4d2] bg-[#fffafa] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#94a3b8]">
             주소
           </p>
-          <p className="mt-2 text-lg font-bold text-[#0f1c2e]">
+          <p className="mt-2 text-lg font-bold text-[#1f2937]">
             {tripOverview.stayAddress}
           </p>
         </div>

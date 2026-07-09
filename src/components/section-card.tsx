@@ -23,7 +23,7 @@ export function SectionCard({
             </p>
           )}
           <div>
-            <h2 className="text-2xl font-bold text-[#0f1c2e]">{title}</h2>
+            <h2 className="text-2xl font-bold text-[#1f2937]">{title}</h2>
             {description && (
               <p className="mt-2 text-sm leading-7 text-slate-600">
                 {description}
@@ -33,7 +33,7 @@ export function SectionCard({
         </div>
       )}
       {!eyebrow && !description && (
-        <h2 className="mb-6 pl-3 text-2xl font-bold text-[#0f1c2e]">{title}</h2>
+        <h2 className="mb-6 pl-3 text-2xl font-bold text-[#1f2937]">{title}</h2>
       )}
       <div className="pl-3">{children}</div>
     </section>

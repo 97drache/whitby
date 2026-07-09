@@ -219,11 +219,11 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     return (
       <form
         onSubmit={handleUnlock}
-        className="space-y-4 rounded-xl border border-[#d7e0ea] bg-white p-6"
+        className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-6"
       >
         <div>
           <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
-          <h3 className="mt-2 text-xl font-bold text-[#0f1c2e]">가족 PIN으로 서류 열기</h3>
+          <h3 className="mt-2 text-xl font-bold text-[#1f2937]">가족 PIN으로 서류 열기</h3>
         </div>
         <input
           type="password"
@@ -231,7 +231,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           value={pin}
           onChange={(event) => setPin(event.target.value)}
           placeholder="가족 PIN"
-          className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+          className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
         />
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <button
@@ -247,7 +247,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   return (
     <div className="space-y-6">
       {checking && (
-        <div className="rounded-xl bg-[#eef3f9] p-4 text-sm text-[#1a3550]">불러오는 중...</div>
+        <div className="rounded-xl bg-[#fff1f0] p-4 text-sm text-[#b82419]">불러오는 중...</div>
       )}
 
       {storage && !storage.persistent && (
@@ -257,13 +257,13 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#eef3f9] p-4 text-sm text-[#1a3550]">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0d4d2] bg-[#fffafa] p-4 text-sm text-[#64748b]">
         <span>현재 {stats}개 업로드됨</span>
         {storage?.persistent && <span>{storage.message}</span>}
         <button
           type="button"
           onClick={() => void handleLock()}
-          className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0f1c2e] shadow-sm"
+          className="btn-secondary"
         >
           다시 잠그기
         </button>
@@ -273,7 +273,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
       <form
         onSubmit={saveDetails}
-        className="grid gap-4 rounded-xl border border-[#d7e0ea] bg-white p-5 md:grid-cols-2"
+        className="grid gap-4 rounded-xl border border-[#f0d4d2] bg-white p-5 md:grid-cols-2"
       >
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -288,7 +288,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
               }))
             }
             placeholder="전화번호 입력"
-            className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
           />
         </div>
         <div>
@@ -299,14 +299,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
               setDetails((current) => ({ ...current, carNumber: event.target.value }))
             }
             placeholder="차량 번호 입력"
-            className="w-full rounded-lg border border-[#d7e0ea] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
           />
         </div>
         <div className="md:col-span-2">
           <button
             type="submit"
             disabled={busyKey === "details"}
-            className="rounded-lg bg-[#0f1c2e] px-5 py-3 text-sm font-bold text-white"
+            className="btn-primary"
           >
             {busyKey === "details" ? "저장 중..." : "공유 정보 저장"}
           </button>
@@ -315,7 +315,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
       {groupedSlots.map((group) => (
         <section key={group.category} className="space-y-4">
-          <h3 className="text-lg font-bold text-[#0f1c2e]">{group.label}</h3>
+          <h3 className="text-lg font-bold text-[#1f2937]">{group.label}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {group.slots.map((slot) => {
               const document = docs[slot.id];
@@ -326,13 +326,13 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                   className="ticket-card rounded-lg p-5 pl-6"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-base font-bold text-[#0f1c2e]">{slot.documentType}</h4>
-                    <span className="rounded-full bg-[#eef3f9] px-3 py-1 text-xs font-semibold text-[#1a3550]">
+                    <h4 className="text-base font-bold text-[#1f2937]">{slot.documentType}</h4>
+                    <span className="rounded-full bg-[#fff1f0] px-3 py-1 text-xs font-semibold text-[#d52b1e]">
                       {slot.person}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-slate-600">{slot.description}</p>
-                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#c5d3e2] bg-[#f8fafc] px-4 py-5 text-sm font-medium text-slate-700">
+                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#f0d4d2] bg-[#fffafa] px-4 py-5 text-sm font-medium text-[#475569]">
                     <input
                       type="file"
                       accept=".pdf,.png,.jpg,.jpeg,.webp"
@@ -345,7 +345,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                     {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
                   </label>
                   {document ? (
-                    <div className="mt-4 rounded-lg bg-[#f8fafc] p-4">
+                    <div className="mt-4 rounded-lg bg-[#fffafa] p-4">
                       <p className="text-sm font-semibold text-slate-900">{document.name}</p>
                       <p className="mt-1 text-xs text-slate-500">
                         업로드 {new Date(document.uploadedAt).toLocaleString("ko-KR")}
@@ -354,14 +354,14 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                         <button
                           type="button"
                           onClick={() => void handleOpen(slot.id)}
-                          className="rounded-lg bg-[#d52b1e] px-4 py-2 text-sm font-semibold text-white"
+                          className="btn-primary"
                         >
                           열기
                         </button>
                         <button
                           type="button"
                           onClick={() => void handleRemove(slot.id)}
-                          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                          className="rounded-lg border border-[#f0d4d2] bg-white px-4 py-2 text-sm font-semibold text-[#64748b]"
                         >
                           삭제
                         </button>

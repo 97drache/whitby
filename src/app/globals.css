@@ -2,11 +2,12 @@
 
 :root {
   --canada-red: #d52b1e;
-  --canada-navy: #0f1c2e;
-  --canada-sky: #e8f0f8;
-  --canada-snow: #f4f7fb;
-  --background: var(--canada-snow);
-  --foreground: #132033;
+  --canada-red-soft: #fff1f0;
+  --canada-white: #ffffff;
+  --canada-ink: #1f2937;
+  --canada-muted: #64748b;
+  --background: #ffffff;
+  --foreground: #1f2937;
 }
 
 @theme inline {
@@ -26,9 +27,7 @@ html {
 
 body {
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(213, 43, 30, 0.06) 0%, transparent 120px),
-    linear-gradient(180deg, #eef3f9 0%, #f8fafc 45%, #f4f7fb 100%);
+  background: linear-gradient(180deg, #fffafa 0%, #ffffff 40%, #fff8f8 100%);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
@@ -53,36 +52,50 @@ a {
 .ticket-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid #d7e0ea;
+  border: 1px solid #f0d4d2;
   background: #ffffff;
-  box-shadow: 0 10px 30px rgba(15, 28, 46, 0.06);
+  box-shadow: 0 8px 24px rgba(213, 43, 30, 0.06);
 }
 
 .ticket-card::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  width: 6px;
+  width: 5px;
   background: var(--canada-red);
 }
 
-.mountain-silhouette {
-  clip-path: polygon(
-    0% 100%,
-    0% 72%,
-    8% 58%,
-    14% 66%,
-    22% 48%,
-    30% 58%,
-    38% 38%,
-    46% 52%,
-    54% 30%,
-    62% 44%,
-    70% 26%,
-    78% 40%,
-    86% 22%,
-    94% 36%,
-    100% 28%,
-    100% 100%
-  );
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  background: var(--canada-red);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #b82419;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--canada-red);
+  background: #ffffff;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--canada-red);
+  transition: background-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--canada-red-soft);
 }

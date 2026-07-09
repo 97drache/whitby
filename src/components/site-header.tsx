@@ -8,14 +8,14 @@ const navItems = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-[#1a2d45] bg-[#0f1c2e] text-white shadow-lg">
-      <div className="canada-stripe h-1 w-full" />
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+    <header className="sticky top-0 z-20 border-b border-[#f0d4d2] bg-white/95 text-[#1f2937] shadow-sm backdrop-blur">
+      <div className="canada-stripe h-1.5 w-full" />
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
-          <p className="text-[11px] font-semibold tracking-[0.28em] text-[#f4b8b2]">
+          <p className="text-[11px] font-bold tracking-[0.28em] text-[#d52b1e]">
             ONTARIO FAMILY TRIP
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#1f2937] sm:text-3xl">
             Canada Again
           </h1>
         </div>
@@ -24,7 +24,7 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
+              className="rounded-lg border border-[#f0d4d2] bg-white px-4 py-2 text-sm font-bold text-[#d52b1e] shadow-sm transition hover:border-[#d52b1e] hover:bg-[#fff1f0]"
             >
               {item.label}
             </Link>
