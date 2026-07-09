@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/section-card";
-import { itinerary } from "@/data/trip-data";
+import { documentViewPath, itinerary } from "@/data/trip-data";
 
 export default function ItineraryPage() {
   return (
@@ -56,7 +56,7 @@ export default function ItineraryPage() {
                   {day.ticketLinks.map((ticket) => (
                     <Link
                       key={`${day.id}-${ticket.label}`}
-                      href={ticket.href}
+                      href={documentViewPath(ticket.slotIds)}
                       className="btn-primary"
                     >
                       {ticket.label}

@@ -272,42 +272,6 @@ export function DocumentUploader({
         {storage?.persistent && <span>{storage.message}</span>}
       </div>
 
-      {!canManage ? (
-        <form
-          onSubmit={handleUnlock}
-          className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-6"
-        >
-          <div>
-            <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
-            <h3 className="mt-2 text-xl font-bold text-[#1f2937]">업로드·수정하려면 PIN 입력</h3>
-            <p className="mt-2 text-sm text-[#64748b]">
-              서류 열기는 PIN 없이 됩니다. 업로드, 삭제, 전화번호 수정만 PIN이 필요합니다.
-            </p>
-          </div>
-          <input
-            type="password"
-            inputMode="numeric"
-            value={pin}
-            onChange={(event) => setPin(event.target.value)}
-            placeholder="가족 PIN"
-            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
-          />
-          <button
-            type="submit"
-            className="rounded-lg bg-[#d52b1e] px-5 py-3 text-sm font-bold text-white"
-          >
-            업로드·수정 잠금 해제
-          </button>
-        </form>
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0d4d2] bg-white p-4">
-          <p className="text-sm font-semibold text-[#1f2937]">업로드·수정 모드가 켜져 있습니다.</p>
-          <button type="button" onClick={() => void handleLock()} className="btn-secondary">
-            수정 모드 끄기
-          </button>
-        </div>
-      )}
-
       {error && <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
 
       <section className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-5">
@@ -446,6 +410,42 @@ export function DocumentUploader({
           </div>
         </section>
       ))}
+
+      {!canManage ? (
+        <form
+          onSubmit={handleUnlock}
+          className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-6"
+        >
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
+            <h3 className="mt-2 text-xl font-bold text-[#1f2937]">업로드·수정하려면 PIN 입력</h3>
+            <p className="mt-2 text-sm text-[#64748b]">
+              서류 열기는 PIN 없이 됩니다. 업로드, 삭제, 전화번호 수정만 PIN이 필요합니다.
+            </p>
+          </div>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={(event) => setPin(event.target.value)}
+            placeholder="가족 PIN"
+            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-[#d52b1e] px-5 py-3 text-sm font-bold text-white"
+          >
+            업로드·수정 잠금 해제
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0d4d2] bg-white p-4">
+          <p className="text-sm font-semibold text-[#1f2937]">업로드·수정 모드가 켜져 있습니다.</p>
+          <button type="button" onClick={() => void handleLock()} className="btn-secondary">
+            수정 모드 끄기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

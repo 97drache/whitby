@@ -1,6 +1,12 @@
+const familyMembers = ["Yongwoon", "Miyoung", "Yireh", "Yiel"] as const;
+
+export type FamilyMemberName = (typeof familyMembers)[number];
+export type FamilyMemberKey = Lowercase<FamilyMemberName>;
+
 export type FamilyMember = {
-  name: string;
+  name: FamilyMemberName;
   note?: string;
+  koreanPhone: string;
 };
 
 export type TripLeg = {
@@ -18,7 +24,7 @@ export type TripDay = {
   stay: string;
   summary: string;
   legs: TripLeg[];
-  ticketLinks?: { label: string; href: string }[];
+  ticketLinks?: { label: string; slotIds: string[] }[];
 };
 
 export type UploadSlot = {
@@ -29,11 +35,6 @@ export type UploadSlot = {
   category: "eta" | "eticket" | "hotel" | "car" | "parking";
 };
 
-const familyMembers = ["Yongwoon", "Miyoung", "Yireh", "Yiel"] as const;
-
-export type FamilyMemberName = (typeof familyMembers)[number];
-export type FamilyMemberKey = Lowercase<FamilyMemberName>;
-
 export type SharedDetails = {
   phones: Record<FamilyMemberKey, string>;
   carNumber: string;
@@ -41,15 +42,19 @@ export type SharedDetails = {
 
 export { familyMembers };
 
+export function documentViewPath(slotIds: string[]) {
+  return `/documents/view?slots=${encodeURIComponent(slotIds.join(","))}`;
+}
+
 export const tripOverview = {
   title: "Canada Again",
   destination: "Ontario, Canada",
   stayAddress: "1445 Coral Spgs Path, ON",
   family: [
-    { name: "Miyoung", note: "Yiel과 먼저 출국" },
-    { name: "Yiel", note: "Miyoung과 먼저 출국" },
-    { name: "Yongwoon", note: "Yireh와 나중 출국" },
-    { name: "Yireh", note: "Yongwoon과 나중 출국" },
+    { name: "Miyoung", note: "Yiel과 먼저 출국", koreanPhone: "010-9391-9411" },
+    { name: "Yiel", note: "Miyoung과 먼저 출국", koreanPhone: "010-9485-9411" },
+    { name: "Yongwoon", note: "Yireh와 나중 출국", koreanPhone: "010-44711-0114" },
+    { name: "Yireh", note: "Yongwoon과 나중 출국", koreanPhone: "010-8550-9411" },
   ] satisfies FamilyMember[],
 };
 
@@ -75,7 +80,12 @@ export const itinerary: TripDay[] = [
         location: "YYZ Terminal 3",
       },
     ],
-    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
+    ticketLinks: [
+      {
+        label: "eTicket 보기",
+        slotIds: ["eticket-outbound-miyoung", "eticket-outbound-yiel"],
+      },
+    ],
   },
   {
     id: "incheon-airport-hotel",
@@ -98,7 +108,7 @@ export const itinerary: TripDay[] = [
         location: "인천",
       },
     ],
-    ticketLinks: [{ label: "호텔 예약 확인서", href: "/documents" }],
+    ticketLinks: [{ label: "호텔 예약 확인서", slotIds: ["hotel-incheon-airport"] }],
   },
   {
     id: "outbound-later",
@@ -121,7 +131,12 @@ export const itinerary: TripDay[] = [
         location: "YYZ Terminal 3",
       },
     ],
-    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
+    ticketLinks: [
+      {
+        label: "eTicket 보기",
+        slotIds: ["eticket-outbound-yongwoon", "eticket-outbound-yireh"],
+      },
+    ],
   },
   {
     id: "toronto-airport-hotel",
@@ -144,7 +159,7 @@ export const itinerary: TripDay[] = [
         location: "Mississauga, ON",
       },
     ],
-    ticketLinks: [{ label: "호텔 예약 확인서", href: "/documents" }],
+    ticketLinks: [{ label: "호텔 예약 확인서", slotIds: ["hotel-toronto-airport"] }],
   },
   {
     id: "return-together",
@@ -167,7 +182,17 @@ export const itinerary: TripDay[] = [
         location: "ICN Terminal 2",
       },
     ],
-    ticketLinks: [{ label: "eTicket 보기", href: "/documents" }],
+    ticketLinks: [
+      {
+        label: "eTicket 보기",
+        slotIds: [
+          "eticket-return-yongwoon",
+          "eticket-return-miyoung",
+          "eticket-return-yireh",
+          "eticket-return-yiel",
+        ],
+      },
+    ],
   },
 ];
 

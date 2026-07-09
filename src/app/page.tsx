@@ -1,10 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { FamilyMemberKey } from "@/data/trip-data";
 import { itinerary, tripOverview } from "@/data/trip-data";
+import { getSharedDetails } from "@/lib/doc-store";
 
-export default function Home() {
+export default async function Home() {
   const start = itinerary[0];
   const end = itinerary[itinerary.length - 1];
+  const sharedDetails = await getSharedDetails();
 
   return (
     <div className="space-y-8">
@@ -84,14 +87,28 @@ export default function Home() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
-        {tripOverview.family.map((member) => (
-          <div key={member.name} className="ticket-card rounded-xl p-5 pl-6">
-            <p className="text-lg font-bold text-[#1f2937]">{member.name}</p>
-            {member.note && (
-              <p className="mt-2 text-sm text-[#64748b]">{member.note}</p>
-            )}
-          </div>
-        ))}
+        {tripOverview.family.map((member) => {
+          const canadaPhone =
+            sharedDetails.phones[member.name.toLowerCase() as FamilyMemberKey];
+          return (
+            <div key={member.name} className="ticket-card rounded-xl p-5 pl-6">
+              <p className="text-lg font-bold text-[#1f2937]">{member.name}</p>
+              {member.note && (
+                <p className="mt-2 text-sm text-[#64748b]">{member.note}</p>
+              )}
+              <div className="mt-4 space-y-2 text-sm">
+                <p className="text-[#334155]">
+                  <span className="font-semibold text-[#d52b1e]">한국폰</span>{" "}
+                  {member.koreanPhone}
+                </p>
+                <p className="text-[#334155]">
+                  <span className="font-semibold text-[#d52b1e]">캐나다폰</span>{" "}
+                  {canadaPhone || "추후 입력"}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </section>
     </div>
   );
