@@ -29,12 +29,17 @@ export type UploadSlot = {
   category: "eta" | "eticket" | "hotel" | "car" | "parking";
 };
 
+const familyMembers = ["Yongwoon", "Miyoung", "Yireh", "Yiel"] as const;
+
+export type FamilyMemberName = (typeof familyMembers)[number];
+export type FamilyMemberKey = Lowercase<FamilyMemberName>;
+
 export type SharedDetails = {
-  canadaPhoneNumber: string;
+  phones: Record<FamilyMemberKey, string>;
   carNumber: string;
 };
 
-const familyMembers = ["Yongwoon", "Miyoung", "Yireh", "Yiel"] as const;
+export { familyMembers };
 
 export const tripOverview = {
   title: "Canada Again",
@@ -221,6 +226,28 @@ export const uploadSlots: UploadSlot[] = [
 ];
 
 export const defaultSharedDetails: SharedDetails = {
-  canadaPhoneNumber: "",
+  phones: {
+    yongwoon: "",
+    miyoung: "",
+    yireh: "",
+    yiel: "",
+  },
   carNumber: "",
 };
+
+export function normalizeSharedDetails(raw: unknown): SharedDetails {
+  const input = (raw ?? {}) as Partial<SharedDetails> & { canadaPhoneNumber?: string };
+  const legacyPhone = input.canadaPhoneNumber?.trim() ?? "";
+  const phones = { ...defaultSharedDetails.phones };
+
+  for (const member of familyMembers) {
+    const key = member.toLowerCase() as FamilyMemberKey;
+    const saved = input.phones?.[key]?.trim() ?? "";
+    phones[key] = saved || (!input.phones && legacyPhone ? legacyPhone : "");
+  }
+
+  return {
+    phones,
+    carNumber: input.carNumber?.trim() ?? "",
+  };
+}

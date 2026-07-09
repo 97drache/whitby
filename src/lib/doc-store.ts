@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { del, get, list, put } from "@vercel/blob";
-import { defaultSharedDetails, type SharedDetails } from "@/data/trip-data";
+import { defaultSharedDetails, normalizeSharedDetails, type SharedDetails } from "@/data/trip-data";
 
 export type StoredDocumentMeta = {
   slotId: string;
@@ -258,24 +258,21 @@ export async function getSharedDetails(): Promise<SharedDetails> {
     const result = await get(DETAILS_PATH, { ...getBlobClientOptions(), access: 'private' });
     if (!result || !result.stream) return defaultSharedDetails;
     const raw = await new Response(result.stream).text();
-    return { ...defaultSharedDetails, ...(JSON.parse(raw) as SharedDetails) };
+    return normalizeSharedDetails(JSON.parse(raw));
   }
 
-  if (isVercelRuntime()) return memoryDetails;
+  if (isVercelRuntime()) return normalizeSharedDetails(memoryDetails);
 
   try {
     const raw = await readFile(LOCAL_DETAILS, 'utf8');
-    return { ...defaultSharedDetails, ...(JSON.parse(raw) as SharedDetails) };
+    return normalizeSharedDetails(JSON.parse(raw));
   } catch {
     return defaultSharedDetails;
   }
 }
 
 export async function saveSharedDetails(details: SharedDetails) {
-  const next = {
-    canadaPhoneNumber: details.canadaPhoneNumber.trim(),
-    carNumber: details.carNumber.trim(),
-  };
+  const next = normalizeSharedDetails(details);
 
   if (hasBlobStorage()) {
     await put(DETAILS_PATH, JSON.stringify(next), {

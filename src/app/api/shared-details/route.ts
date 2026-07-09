@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeSharedDetails } from "@/data/trip-data";
 import { getSharedDetails, saveSharedDetails } from "@/lib/doc-store";
 import { isFamilyAuthenticated } from "@/lib/family-auth";
 
@@ -17,16 +18,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as {
-      canadaPhoneNumber?: string;
-      carNumber?: string;
-    };
-
-    const details = await saveSharedDetails({
-      canadaPhoneNumber: String(body.canadaPhoneNumber ?? ""),
-      carNumber: String(body.carNumber ?? ""),
-    });
-
+    const body = await request.json();
+    const details = await saveSharedDetails(normalizeSharedDetails(body));
     return NextResponse.json({ details });
   } catch {
     return NextResponse.json({ error: "공유 정보를 저장할 수 없습니다." }, { status: 500 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import type { SharedDetails, UploadSlot } from "@/data/trip-data";
+import type { FamilyMemberKey, SharedDetails, UploadSlot } from "@/data/trip-data";
+import { defaultSharedDetails, familyMembers } from "@/data/trip-data";
 
 type DocumentMeta = {
   slotId: string;
@@ -21,10 +22,7 @@ type DocumentUploaderProps = {
   slots: UploadSlot[];
 };
 
-const EMPTY_DETAILS: SharedDetails = {
-  canadaPhoneNumber: "",
-  carNumber: "",
-};
+const EMPTY_DETAILS: SharedDetails = defaultSharedDetails;
 
 const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
   eta: "eTA",
@@ -280,23 +278,32 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
       <form
         onSubmit={saveDetails}
-        className="grid gap-4 rounded-xl border border-[#f0d4d2] bg-white p-5 md:grid-cols-2"
+        className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-5"
       >
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            캐나다 개인 전화번호
-          </label>
-          <input
-            value={details.canadaPhoneNumber}
-            onChange={(event) =>
-              setDetails((current) => ({
-                ...current,
-                canadaPhoneNumber: event.target.value,
-              }))
-            }
-            placeholder="전화번호 입력"
-            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
-          />
+          <h3 className="text-base font-bold text-[#1f2937]">캐나다 개인 전화번호</h3>
+          <p className="mt-1 text-sm text-[#64748b]">가족 4명 각각의 캐나다 번호를 입력합니다.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {familyMembers.map((member) => {
+            const key = member.toLowerCase() as FamilyMemberKey;
+            return (
+              <div key={member}>
+                <label className="mb-2 block text-sm font-medium text-slate-700">{member}</label>
+                <input
+                  value={details.phones[key]}
+                  onChange={(event) =>
+                    setDetails((current) => ({
+                      ...current,
+                      phones: { ...current.phones, [key]: event.target.value },
+                    }))
+                  }
+                  placeholder={`${member} 전화번호`}
+                  className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+                />
+              </div>
+            );
+          })}
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">차량 번호</label>
@@ -309,7 +316,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
             className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
           />
         </div>
-        <div className="md:col-span-2">
+        <div>
           <button
             type="submit"
             disabled={busyKey === "details"}
