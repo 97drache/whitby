@@ -4,10 +4,6 @@ import { getSharedDetails, saveSharedDetails } from "@/lib/doc-store";
 import { isFamilyAuthenticated } from "@/lib/family-auth";
 
 export async function GET() {
-  if (!(await isFamilyAuthenticated())) {
-    return NextResponse.json({ error: "Family PIN required." }, { status: 401 });
-  }
-
   const details = await getSharedDetails();
   return NextResponse.json({ details });
 }

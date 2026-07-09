@@ -1,16 +1,28 @@
 import { DocumentUploader } from "@/components/document-uploader";
 import { SectionCard } from "@/components/section-card";
 import { tripOverview, uploadSlots } from "@/data/trip-data";
+import { getSharedDetails, getStorageInfo, listDocuments } from "@/lib/doc-store";
 
-export default function DocumentsPage() {
+export default async function DocumentsPage() {
+  const [documents, details, storage] = await Promise.all([
+    listDocuments(),
+    getSharedDetails(),
+    Promise.resolve(getStorageInfo()),
+  ]);
+
   return (
     <div className="space-y-8">
       <SectionCard
         title="여행 서류"
         eyebrow="Documents"
-        description="가족 PIN으로 열고, eTA·왕복 eTicket·호텔·차량·주차 예약 서류를 관리합니다."
+        description="서류는 누구나 볼 수 있습니다. 업로드·삭제·전화번호 수정은 가족 PIN이 필요합니다."
       >
-        <DocumentUploader slots={uploadSlots} />
+        <DocumentUploader
+          slots={uploadSlots}
+          initialDocuments={documents}
+          initialDetails={details}
+          initialStorage={storage}
+        />
       </SectionCard>
       <SectionCard title="숙소" eyebrow="Stay">
         <div className="rounded-xl border border-[#f0d4d2] bg-[#fffafa] p-5">

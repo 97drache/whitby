@@ -2,7 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import type { FamilyMemberKey, SharedDetails, UploadSlot } from "@/data/trip-data";
-import { defaultSharedDetails, familyMembers } from "@/data/trip-data";
+import { familyMembers } from "@/data/trip-data";
+import type { StorageInfo } from "@/lib/doc-store";
 
 type DocumentMeta = {
   slotId: string;
@@ -12,17 +13,22 @@ type DocumentMeta = {
   uploadedAt: string;
 };
 
-type StorageInfo = {
-  mode: "blob" | "local" | "ephemeral";
-  persistent: boolean;
-  message: string;
-};
+type StorageInfoState = StorageInfo;
 
 type DocumentUploaderProps = {
   slots: UploadSlot[];
+  initialDocuments: DocumentMeta[];
+  initialDetails: SharedDetails;
+  initialStorage: StorageInfoState;
 };
 
-const EMPTY_DETAILS: SharedDetails = defaultSharedDetails;
+function buildDocsMap(slots: UploadSlot[], documents: DocumentMeta[]) {
+  const nextDocs: Record<string, DocumentMeta | null> = {};
+  for (const slot of slots) {
+    nextDocs[slot.id] = documents.find((document) => document.slotId === slot.id) ?? null;
+  }
+  return nextDocs;
+}
 
 const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
   eta: "eTA",
@@ -40,15 +46,20 @@ const CATEGORY_ORDER: UploadSlot["category"][] = [
   "parking",
 ];
 
-export function DocumentUploader({ slots }: DocumentUploaderProps) {
-  const [unlocked, setUnlocked] = useState(false);
+export function DocumentUploader({
+  slots,
+  initialDocuments,
+  initialDetails,
+  initialStorage,
+}: DocumentUploaderProps) {
+  const [canManage, setCanManage] = useState(false);
   const [checking, setChecking] = useState(false);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [docs, setDocs] = useState<Record<string, DocumentMeta | null>>({});
-  const [details, setDetails] = useState<SharedDetails>(EMPTY_DETAILS);
-  const [storage, setStorage] = useState<StorageInfo | null>(null);
+  const [docs, setDocs] = useState(() => buildDocsMap(slots, initialDocuments));
+  const [details, setDetails] = useState(initialDetails);
+  const [storage, setStorage] = useState<StorageInfoState | null>(initialStorage);
 
   const stats = useMemo(() => {
     const uploaded = slots.filter((slot) => docs[slot.id]).length;
@@ -63,23 +74,17 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     })).filter((group) => group.slots.length > 0);
   }, [slots]);
 
-  async function refreshAll() {
+  async function loadViewData() {
     setChecking(true);
     setError("");
 
     try {
       const storageResponse = await fetch("/api/storage-status");
       if (storageResponse.ok) {
-        setStorage((await storageResponse.json()) as StorageInfo);
+        setStorage((await storageResponse.json()) as StorageInfoState);
       }
 
       const docResponse = await fetch("/api/documents");
-      if (docResponse.status === 401) {
-        setUnlocked(false);
-        setDocs({});
-        setDetails(EMPTY_DETAILS);
-        return;
-      }
       if (!docResponse.ok) {
         throw new Error("공유 서류를 불러올 수 없습니다.");
       }
@@ -91,7 +96,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
       const docPayload = (await docResponse.json()) as {
         documents: DocumentMeta[];
-        storage?: StorageInfo;
+        storage?: StorageInfoState;
       };
       const detailPayload = (await detailResponse.json()) as { details: SharedDetails };
       const nextDocs: Record<string, DocumentMeta | null> = {};
@@ -102,7 +107,6 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       setDocs(nextDocs);
       setDetails(detailPayload.details);
       if (docPayload.storage) setStorage(docPayload.storage);
-      setUnlocked(true);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "불러오기에 실패했습니다.");
     } finally {
@@ -126,19 +130,27 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     }
 
     setPin("");
-    await refreshAll();
+    setCanManage(true);
+    await loadViewData();
   }
 
   async function handleLock() {
     await fetch("/api/family-auth", { method: "DELETE" });
-    setUnlocked(false);
-    setDocs({});
-    setDetails(EMPTY_DETAILS);
+    setCanManage(false);
     setError("");
+  }
+
+  function requireManage(action: string) {
+    setError(`업로드·삭제·수정은 가족 PIN으로 먼저 잠금 해제해 주세요. (${action})`);
   }
 
   async function handleSelect(slotId: string, file: File | null) {
     if (!file) return;
+    if (!canManage) {
+      requireManage("업로드");
+      return;
+    }
+
     setBusyKey(slotId);
     setError("");
     try {
@@ -153,11 +165,15 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
           dataUrl,
         }),
       });
+      if (response.status === 401) {
+        setCanManage(false);
+        throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
+      }
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "업로드에 실패했습니다.");
       }
-      await refreshAll();
+      await loadViewData();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "업로드에 실패했습니다.");
     } finally {
@@ -188,12 +204,21 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
   }
 
   async function handleRemove(slotId: string) {
+    if (!canManage) {
+      requireManage("삭제");
+      return;
+    }
+
     setBusyKey(slotId);
     setError("");
     try {
       const response = await fetch(`/api/documents?slotId=${slotId}`, { method: "DELETE" });
+      if (response.status === 401) {
+        setCanManage(false);
+        throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
+      }
       if (!response.ok) throw new Error("파일을 삭제할 수 없습니다.");
-      await refreshAll();
+      await loadViewData();
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : "파일을 삭제할 수 없습니다.");
     } finally {
@@ -203,6 +228,11 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
 
   async function saveDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canManage) {
+      requireManage("정보 저장");
+      return;
+    }
+
     setBusyKey("details");
     setError("");
     try {
@@ -211,8 +241,12 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(details),
       });
+      if (response.status === 401) {
+        setCanManage(false);
+        throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
+      }
       if (!response.ok) throw new Error("공유 정보를 저장할 수 없습니다.");
-      await refreshAll();
+      await loadViewData();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "공유 정보를 저장할 수 없습니다.");
     } finally {
@@ -220,39 +254,10 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
     }
   }
 
-  if (!unlocked) {
-    return (
-      <form
-        onSubmit={handleUnlock}
-        className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-6"
-      >
-        <div>
-          <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
-          <h3 className="mt-2 text-xl font-bold text-[#1f2937]">가족 PIN으로 서류 열기</h3>
-        </div>
-        <input
-          type="password"
-          inputMode="numeric"
-          value={pin}
-          onChange={(event) => setPin(event.target.value)}
-          placeholder="가족 PIN"
-          className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
-        />
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-        <button
-          type="submit"
-          className="rounded-lg bg-[#d52b1e] px-5 py-3 text-sm font-bold text-white"
-        >
-          열기
-        </button>
-      </form>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {checking && (
-        <div className="rounded-xl bg-[#fff1f0] p-4 text-sm text-[#b82419]">불러오는 중...</div>
+        <div className="rounded-xl bg-[#fff1f0] p-4 text-sm text-[#b82419]">새로고침 중...</div>
       )}
 
       {storage && !storage.persistent && (
@@ -263,69 +268,119 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0d4d2] bg-[#fffafa] p-4 text-sm text-[#64748b]">
-        <span>현재 {stats}개 업로드됨</span>
+        <span>현재 {stats}개 업로드됨 · 서류 보기는 PIN 없이 가능</span>
         {storage?.persistent && <span>{storage.message}</span>}
-        <button
-          type="button"
-          onClick={() => void handleLock()}
-          className="btn-secondary"
-        >
-          다시 잠그기
-        </button>
       </div>
+
+      {!canManage ? (
+        <form
+          onSubmit={handleUnlock}
+          className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-6"
+        >
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.22em] text-[#d52b1e]">FAMILY PIN</p>
+            <h3 className="mt-2 text-xl font-bold text-[#1f2937]">업로드·수정하려면 PIN 입력</h3>
+            <p className="mt-2 text-sm text-[#64748b]">
+              서류 열기는 PIN 없이 됩니다. 업로드, 삭제, 전화번호 수정만 PIN이 필요합니다.
+            </p>
+          </div>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pin}
+            onChange={(event) => setPin(event.target.value)}
+            placeholder="가족 PIN"
+            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-[#d52b1e] px-5 py-3 text-sm font-bold text-white"
+          >
+            업로드·수정 잠금 해제
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0d4d2] bg-white p-4">
+          <p className="text-sm font-semibold text-[#1f2937]">업로드·수정 모드가 켜져 있습니다.</p>
+          <button type="button" onClick={() => void handleLock()} className="btn-secondary">
+            수정 모드 끄기
+          </button>
+        </div>
+      )}
 
       {error && <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
 
-      <form
-        onSubmit={saveDetails}
-        className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-5"
-      >
+      <section className="space-y-4 rounded-xl border border-[#f0d4d2] bg-white p-5">
         <div>
           <h3 className="text-base font-bold text-[#1f2937]">캐나다 개인 전화번호</h3>
-          <p className="mt-1 text-sm text-[#64748b]">가족 4명 각각의 캐나다 번호를 입력합니다.</p>
+          <p className="mt-1 text-sm text-[#64748b]">가족 4명 각각의 캐나다 번호입니다.</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {familyMembers.map((member) => {
-            const key = member.toLowerCase() as FamilyMemberKey;
-            return (
-              <div key={member}>
-                <label className="mb-2 block text-sm font-medium text-slate-700">{member}</label>
-                <input
-                  value={details.phones[key]}
-                  onChange={(event) =>
-                    setDetails((current) => ({
-                      ...current,
-                      phones: { ...current.phones, [key]: event.target.value },
-                    }))
-                  }
-                  placeholder={`${member} 전화번호`}
-                  className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">차량 번호</label>
-          <input
-            value={details.carNumber}
-            onChange={(event) =>
-              setDetails((current) => ({ ...current, carNumber: event.target.value }))
-            }
-            placeholder="차량 번호 입력"
-            className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
-          />
-        </div>
-        <div>
-          <button
-            type="submit"
-            disabled={busyKey === "details"}
-            className="btn-primary"
-          >
-            {busyKey === "details" ? "저장 중..." : "공유 정보 저장"}
-          </button>
-        </div>
-      </form>
+        {canManage ? (
+          <form onSubmit={saveDetails} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {familyMembers.map((member) => {
+                const key = member.toLowerCase() as FamilyMemberKey;
+                return (
+                  <div key={member}>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      {member}
+                    </label>
+                    <input
+                      value={details.phones[key]}
+                      onChange={(event) =>
+                        setDetails((current) => ({
+                          ...current,
+                          phones: { ...current.phones, [key]: event.target.value },
+                        }))
+                      }
+                      placeholder={`${member} 전화번호`}
+                      className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">차량 번호</label>
+              <input
+                value={details.carNumber}
+                onChange={(event) =>
+                  setDetails((current) => ({ ...current, carNumber: event.target.value }))
+                }
+                placeholder="차량 번호 입력"
+                className="w-full rounded-lg border border-[#f0d4d2] px-4 py-3 outline-none ring-[#d52b1e]/30 focus:ring"
+              />
+            </div>
+            <button type="submit" disabled={busyKey === "details"} className="btn-primary">
+              {busyKey === "details" ? "저장 중..." : "공유 정보 저장"}
+            </button>
+          </form>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {familyMembers.map((member) => {
+              const key = member.toLowerCase() as FamilyMemberKey;
+              const phone = details.phones[key];
+              return (
+                <div
+                  key={member}
+                  className="rounded-lg border border-[#f0d4d2] bg-[#fffafa] px-4 py-3"
+                >
+                  <p className="text-xs font-semibold text-[#d52b1e]">{member}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1f2937]">
+                    {phone || "아직 입력되지 않았습니다."}
+                  </p>
+                </div>
+              );
+            })}
+            <div className="rounded-lg border border-[#f0d4d2] bg-[#fffafa] px-4 py-3 md:col-span-2">
+              <p className="text-xs font-semibold text-[#d52b1e]">차량 번호</p>
+              <p className="mt-1 text-sm font-medium text-[#1f2937]">
+                {details.carNumber || "아직 입력되지 않았습니다."}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       {groupedSlots.map((group) => (
         <section key={group.category} className="space-y-4">
@@ -335,10 +390,7 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
               const document = docs[slot.id];
               const isBusy = busyKey === slot.id;
               return (
-                <article
-                  key={slot.id}
-                  className="ticket-card rounded-lg p-5 pl-6"
-                >
+                <article key={slot.id} className="ticket-card rounded-lg p-5 pl-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="text-base font-bold text-[#1f2937]">{slot.documentType}</h4>
                     <span className="rounded-full bg-[#fff1f0] px-3 py-1 text-xs font-semibold text-[#d52b1e]">
@@ -346,18 +398,20 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-slate-600">{slot.description}</p>
-                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#f0d4d2] bg-[#fffafa] px-4 py-5 text-sm font-medium text-[#475569]">
-                    <input
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg,.webp"
-                      className="hidden"
-                      disabled={isBusy}
-                      onChange={(event) =>
-                        void handleSelect(slot.id, event.target.files?.[0] ?? null)
-                      }
-                    />
-                    {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
-                  </label>
+                  {canManage && (
+                    <label className="mt-4 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#f0d4d2] bg-[#fffafa] px-4 py-5 text-sm font-medium text-[#475569]">
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        className="hidden"
+                        disabled={isBusy}
+                        onChange={(event) =>
+                          void handleSelect(slot.id, event.target.files?.[0] ?? null)
+                        }
+                      />
+                      {isBusy ? "처리 중..." : document ? "파일 바꾸기" : "파일 올리기"}
+                    </label>
+                  )}
                   {document ? (
                     <div className="mt-4 rounded-lg bg-[#fffafa] p-4">
                       <p className="text-sm font-semibold text-slate-900">{document.name}</p>
@@ -372,13 +426,15 @@ export function DocumentUploader({ slots }: DocumentUploaderProps) {
                         >
                           열기
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleRemove(slot.id)}
-                          className="rounded-lg border border-[#f0d4d2] bg-white px-4 py-2 text-sm font-semibold text-[#64748b]"
-                        >
-                          삭제
-                        </button>
+                        {canManage && (
+                          <button
+                            type="button"
+                            onClick={() => void handleRemove(slot.id)}
+                            className="rounded-lg border border-[#f0d4d2] bg-white px-4 py-2 text-sm font-semibold text-[#64748b]"
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -13,10 +13,6 @@ const ALLOWED_SLOT_IDS = new Set(uploadSlots.map((slot) => slot.id));
 const MAX_FILE_CHARS = 4_500_000;
 
 export async function GET() {
-  if (!(await isFamilyAuthenticated())) {
-    return NextResponse.json({ error: "Family PIN required." }, { status: 401 });
-  }
-
   const documents = await listDocuments();
   return NextResponse.json({ documents, storage: getStorageInfo() });
 }

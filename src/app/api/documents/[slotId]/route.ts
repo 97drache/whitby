@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getDocument } from "@/lib/doc-store";
-import { isFamilyAuthenticated } from "@/lib/family-auth";
 import { uploadSlots } from "@/data/trip-data";
 
 const ALLOWED_SLOT_IDS = new Set(uploadSlots.map((slot) => slot.id));
@@ -10,9 +9,6 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  if (!(await isFamilyAuthenticated())) {
-    return NextResponse.json({ error: "Family PIN required." }, { status: 401 });
-  }
   const { slotId } = await context.params;
   if (!ALLOWED_SLOT_IDS.has(slotId)) {
     return NextResponse.json({ error: "Invalid document slot." }, { status: 400 });
