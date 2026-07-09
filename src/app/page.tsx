@@ -3,6 +3,34 @@ import Link from "next/link";
 import type { FamilyMemberKey } from "@/data/trip-data";
 import { itinerary, rentalCar, tripOverview } from "@/data/trip-data";
 import { getSharedDetails } from "@/lib/doc-store";
+import { toCanadaTelHref, toKoreanTelHref } from "@/lib/phone";
+
+function PhoneLink({
+  phone,
+  href,
+  fallback,
+}: {
+  phone: string;
+  href: string | null;
+  fallback?: string;
+}) {
+  if (!phone.trim()) {
+    return <span className="text-[#94a3b8]">{fallback ?? "추후 입력"}</span>;
+  }
+
+  if (!href) {
+    return <span>{phone}</span>;
+  }
+
+  return (
+    <a
+      href={href}
+      className="font-medium text-[#1f2937] underline decoration-[#f0d4d2] underline-offset-2 transition hover:text-[#d52b1e] hover:decoration-[#d52b1e]"
+    >
+      {phone}
+    </a>
+  );
+}
 
 export default async function Home() {
   const start = itinerary[0];
@@ -109,11 +137,18 @@ export default async function Home() {
               <div className="mt-4 space-y-2 text-sm">
                 <p className="text-[#334155]">
                   <span className="font-semibold text-[#d52b1e]">한국폰</span>{" "}
-                  {member.koreanPhone}
+                  <PhoneLink
+                    phone={member.koreanPhone}
+                    href={toKoreanTelHref(member.koreanPhone)}
+                  />
                 </p>
                 <p className="text-[#334155]">
                   <span className="font-semibold text-[#d52b1e]">캐나다폰</span>{" "}
-                  {canadaPhone || "추후 입력"}
+                  <PhoneLink
+                    phone={canadaPhone ?? ""}
+                    href={canadaPhone ? toCanadaTelHref(canadaPhone) : null}
+                    fallback="추후 입력"
+                  />
                 </p>
               </div>
             </div>

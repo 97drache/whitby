@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import type { FamilyMemberKey, SharedDetails, UploadSlot } from "@/data/trip-data";
 import { familyMembers } from "@/data/trip-data";
+import { documentFileBlobPath } from "@/lib/doc-paths";
 import type { StorageInfo } from "@/lib/doc-store";
 
 type DocumentMeta = {
@@ -154,30 +156,69 @@ export function DocumentUploader({
     setBusyKey(slotId);
     setError("");
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slotId,
-          name: file.name,
-          type: file.type || "application/octet-stream",
-          dataUrl,
-        }),
-      });
-      if (response.status === 401) {
-        setCanManage(false);
-        throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
-      }
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "업로드에 실패했습니다.");
+      if (storage?.mode === "blob") {
+        await uploadViaBlob(slotId, file);
+      } else {
+        await uploadViaDataUrl(slotId, file);
       }
       await loadViewData();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "업로드에 실패했습니다.");
     } finally {
       setBusyKey(null);
+    }
+  }
+
+  async function uploadViaBlob(slotId: string, file: File) {
+    const blob = await upload(documentFileBlobPath(slotId), file, {
+      access: "private",
+      handleUploadUrl: "/api/documents/upload",
+      clientPayload: JSON.stringify({ slotId }),
+      contentType: file.type || "application/octet-stream",
+      multipart: file.size > 4 * 1024 * 1024,
+    });
+
+    const response = await fetch("/api/documents/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slotId,
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        blobPathname: blob.pathname,
+      }),
+    });
+
+    if (response.status === 401) {
+      setCanManage(false);
+      throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error ?? "업로드에 실패했습니다.");
+    }
+  }
+
+  async function uploadViaDataUrl(slotId: string, file: File) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const response = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slotId,
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        dataUrl,
+      }),
+    });
+    if (response.status === 401) {
+      setCanManage(false);
+      throw new Error("PIN 인증이 만료되었습니다. 다시 잠금 해제해 주세요.");
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error ?? "업로드에 실패했습니다.");
     }
   }
 

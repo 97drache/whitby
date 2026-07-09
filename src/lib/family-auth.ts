@@ -76,6 +76,12 @@ export async function isFamilyAuthenticated() {
   return verifyFamilySessionToken(cookieStore.get(FAMILY_COOKIE)?.value);
 }
 
+export function isFamilyAuthenticatedFromRequest(request: Request) {
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const match = cookieHeader.match(new RegExp(`${FAMILY_COOKIE}=([^;]+)`));
+  return verifyFamilySessionToken(match?.[1]);
+}
+
 export function familyCookieOptions(maxAgeSeconds: number) {
   return {
     httpOnly: true,

@@ -2,6 +2,11 @@ import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { del, get, list, put } from "@vercel/blob";
 import { defaultSharedDetails, normalizeSharedDetails, type SharedDetails } from "@/data/trip-data";
+import {
+  DOC_PREFIX,
+  documentFileBlobPath,
+  documentMetaBlobPath,
+} from "@/lib/doc-paths";
 
 export type StoredDocumentMeta = {
   slotId: string;
@@ -12,10 +17,31 @@ export type StoredDocumentMeta = {
 };
 
 type StoredDocumentRecord = StoredDocumentMeta & {
-  dataUrl: string;
+  dataUrl?: string;
+  blobPathname?: string;
 };
 
-const DOC_PREFIX = "canada-family-docs";
+const META_SUFFIX = ".json";
+
+function metaBlobPath(slotId: string) {
+  return documentMetaBlobPath(slotId);
+}
+
+function fileBlobPath(slotId: string) {
+  return documentFileBlobPath(slotId);
+}
+
+function isMetaBlobPath(pathname: string) {
+  return new RegExp(`^${DOC_PREFIX}/[^/]+\\${META_SUFFIX}$`).test(pathname);
+}
+
+async function blobToDataUrl(pathname: string, contentType: string) {
+  const result = await get(pathname, { ...getBlobClientOptions(), access: "private" });
+  if (!result?.stream) return "";
+  const buffer = Buffer.from(await new Response(result.stream).arrayBuffer());
+  return `data:${contentType || "application/octet-stream"};base64,${buffer.toString("base64")}`;
+}
+
 const DETAILS_PATH = "canada-family-shared-details.json";
 const LOCAL_DIR = path.join(process.cwd(), ".data", "shared-docs");
 const LOCAL_DETAILS = path.join(process.cwd(), ".data", "shared-details.json");
@@ -66,6 +92,10 @@ function getBlobClientOptions() {
   if (storeId) options.storeId = storeId;
 
   return options;
+}
+
+export function getBlobUploadToken() {
+  return getBlobClientOptions().token;
 }
 
 function hasBlobStorage() {
@@ -163,6 +193,7 @@ export async function listDocuments(): Promise<StoredDocumentMeta[]> {
     const result = await list({ prefix: `${DOC_PREFIX}/`, ...getBlobClientOptions() });
     const metas: StoredDocumentMeta[] = [];
     for (const blob of result.blobs) {
+      if (!isMetaBlobPath(blob.pathname)) continue;
       const record = await readBlobJson(blob.pathname);
       if (record) metas.push(toMeta(record));
     }
@@ -190,33 +221,56 @@ export async function listDocuments(): Promise<StoredDocumentMeta[]> {
 }
 
 export async function getDocument(slotId: string): Promise<StoredDocumentRecord | null> {
-  if (hasBlobStorage()) return readBlobJson(`${DOC_PREFIX}/${slotId}.json`);
-  if (isVercelRuntime()) return memoryDocs.get(slotId) ?? null;
+  if (hasBlobStorage()) {
+    const record = await readBlobJson(metaBlobPath(slotId));
+    if (!record) return null;
+    if (record.dataUrl) return record;
+    if (record.blobPathname) {
+      const dataUrl = await blobToDataUrl(record.blobPathname, record.type);
+      if (!dataUrl) return null;
+      return { ...record, dataUrl };
+    }
+    return null;
+  }
+  if (isVercelRuntime()) {
+    const record = memoryDocs.get(slotId);
+    if (!record) return null;
+    return record.dataUrl ? record : null;
+  }
   try {
-    const raw = await readFile(localDocPath(slotId), 'utf8');
-    return JSON.parse(raw) as StoredDocumentRecord;
+    const raw = await readFile(localDocPath(slotId), "utf8");
+    const record = JSON.parse(raw) as StoredDocumentRecord;
+    return record.dataUrl ? record : null;
   } catch {
     return null;
   }
 }
 
-export async function saveDocument(input: { slotId: string; name: string; type: string; dataUrl: string; }) {
+export async function saveDocumentMeta(input: {
+  slotId: string;
+  name: string;
+  type: string;
+  size: number;
+  blobPathname?: string;
+  dataUrl?: string;
+}) {
   const record: StoredDocumentRecord = {
     slotId: input.slotId,
     name: input.name,
     type: input.type,
-    size: Buffer.byteLength(input.dataUrl, 'utf8'),
+    size: input.size,
     uploadedAt: new Date().toISOString(),
+    blobPathname: input.blobPathname,
     dataUrl: input.dataUrl,
   };
 
   if (hasBlobStorage()) {
-    await put(`${DOC_PREFIX}/${input.slotId}.json`, JSON.stringify(record), {
+    await put(metaBlobPath(input.slotId), JSON.stringify(record), {
       ...getBlobClientOptions(),
-      access: 'private',
+      access: "private",
       addRandomSuffix: false,
       allowOverwrite: true,
-      contentType: 'application/json',
+      contentType: "application/json",
     });
     return toMeta(record);
   }
@@ -227,14 +281,36 @@ export async function saveDocument(input: { slotId: string; name: string; type: 
   }
 
   await ensureLocalDir();
-  await writeFile(localDocPath(input.slotId), JSON.stringify(record), 'utf8');
+  await writeFile(localDocPath(input.slotId), JSON.stringify(record), "utf8");
   return toMeta(record);
+}
+
+export async function saveDocument(input: { slotId: string; name: string; type: string; dataUrl: string; }) {
+  return saveDocumentMeta({
+    slotId: input.slotId,
+    name: input.name,
+    type: input.type,
+    size: Buffer.byteLength(input.dataUrl, "utf8"),
+    dataUrl: input.dataUrl,
+  });
 }
 
 export async function deleteDocument(slotId: string) {
   if (hasBlobStorage()) {
-    const result = await list({ prefix: `${DOC_PREFIX}/${slotId}.json`, ...getBlobClientOptions() });
-    if (result.blobs[0]) await del(result.blobs[0].url, getBlobClientOptions());
+    const record = await readBlobJson(metaBlobPath(slotId));
+    const targets = new Set<string>([metaBlobPath(slotId), fileBlobPath(slotId)]);
+    if (record?.blobPathname) targets.add(record.blobPathname);
+
+    const listed = await list({ prefix: `${DOC_PREFIX}/${slotId}`, ...getBlobClientOptions() });
+    for (const blob of listed.blobs) targets.add(blob.pathname);
+
+    await Promise.all(
+      [...targets].map(async (pathname) => {
+        const found = await list({ prefix: pathname, ...getBlobClientOptions() });
+        const match = found.blobs.find((blob) => blob.pathname === pathname);
+        if (match) await del(match.url, getBlobClientOptions());
+      }),
+    );
     return;
   }
 

@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     }
 
     if (dataUrl.length > MAX_FILE_CHARS) {
-      return NextResponse.json({ error: "파일이 너무 큽니다." }, { status: 400 });
+      return NextResponse.json(
+        { error: "파일이 너무 큽니다. PDF를 압축하거나 이미지로 변환해 주세요." },
+        { status: 400 },
+      );
     }
 
     const document = await saveDocument({ slotId, name, type, dataUrl });
