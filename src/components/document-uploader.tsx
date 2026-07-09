@@ -31,9 +31,16 @@ const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
   eticket: "왕복 eTicket",
   hotel: "호텔 예약",
   car: "차량 예약",
+  parking: "주차 예약",
 };
 
-const CATEGORY_ORDER: UploadSlot["category"][] = ["eta", "eticket", "hotel", "car"];
+const CATEGORY_ORDER: UploadSlot["category"][] = [
+  "eta",
+  "eticket",
+  "hotel",
+  "car",
+  "parking",
+];
 
 export function DocumentUploader({ slots }: DocumentUploaderProps) {
   const [unlocked, setUnlocked] = useState(false);

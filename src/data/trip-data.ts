@@ -26,7 +26,7 @@ export type UploadSlot = {
   person: string;
   documentType: string;
   description: string;
-  category: "eta" | "eticket" | "hotel" | "car";
+  category: "eta" | "eticket" | "hotel" | "car" | "parking";
 };
 
 export type SharedDetails = {
@@ -210,6 +210,13 @@ export const uploadSlots: UploadSlot[] = [
     documentType: "차량 예약 확인증",
     description: "렌터카 예약 확인 파일",
     category: "car",
+  },
+  {
+    id: "parking-reservation",
+    person: "가족",
+    documentType: "주차 예약 확인증",
+    description: "귀국 후 이용할 주차장 예약 확인 파일",
+    category: "parking",
   },
 ];
 

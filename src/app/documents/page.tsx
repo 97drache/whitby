@@ -8,7 +8,7 @@ export default function DocumentsPage() {
       <SectionCard
         title="여행 서류"
         eyebrow="Documents"
-        description="가족 PIN으로 열고, eTA·왕복 eTicket·호텔·차량 예약 서류를 관리합니다."
+        description="가족 PIN으로 열고, eTA·왕복 eTicket·호텔·차량·주차 예약 서류를 관리합니다."
       >
         <DocumentUploader slots={uploadSlots} />
       </SectionCard>
