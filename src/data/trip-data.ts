@@ -64,7 +64,7 @@ export const tripOverview = {
   family: [
     { name: "Miyoung", note: "Yiel과 먼저 출국", koreanPhone: "010-9391-9411" },
     { name: "Yiel", note: "Miyoung과 먼저 출국", koreanPhone: "010-9485-9411" },
-    { name: "Yongwoon", note: "Yireh와 나중 출국", koreanPhone: "010-44711-0114" },
+    { name: "Yongwoon", note: "Yireh와 나중 출국", koreanPhone: "010-4711-0114" },
     { name: "Yireh", note: "Yongwoon과 나중 출국", koreanPhone: "010-8550-9411" },
   ] satisfies FamilyMember[],
 };
