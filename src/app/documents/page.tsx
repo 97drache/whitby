@@ -1,4 +1,5 @@
 import { DocumentUploader } from "@/components/document-uploader";
+import { ImmigrationQAList } from "@/components/immigration-qa";
 import { SectionCard } from "@/components/section-card";
 import { tripOverview, uploadSlots } from "@/data/trip-data";
 import { getSharedDetails, getStorageInfo, listDocuments } from "@/lib/doc-store";
@@ -32,7 +33,15 @@ export default async function DocumentsPage() {
           <p className="mt-2 text-lg font-bold text-[#1f2937]">
             {tripOverview.stayAddress}
           </p>
+          <p className="mt-2 text-sm text-[#64748b]">친구집 숙박</p>
         </div>
+      </SectionCard>
+      <SectionCard
+        title="입국심사"
+        eyebrow="Border Q&A"
+        description="캐나다 입국심사에서 자주 나오는 질문과 간단한 답변입니다. 숙소는 친구집 기준으로 적어 두었습니다."
+      >
+        <ImmigrationQAList />
       </SectionCard>
     </div>
   );
