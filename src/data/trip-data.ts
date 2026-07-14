@@ -32,7 +32,7 @@ export type UploadSlot = {
   person: string;
   documentType: string;
   description: string;
-  category: "eta" | "eticket" | "hotel" | "car" | "parking";
+  category: "passport" | "eta" | "eticket" | "hotel" | "car" | "parking";
 };
 
 export type SharedDetails = {
@@ -226,6 +226,13 @@ export const itinerary: TripDay[] = [
 ];
 
 export const uploadSlots: UploadSlot[] = [
+  ...familyMembers.map((person) => ({
+    id: `passport-${person.toLowerCase()}`,
+    person,
+    documentType: "여권 사본",
+    description: `${person} 여권 사진·정보면 사본`,
+    category: "passport" as const,
+  })),
   ...familyMembers.map((person) => ({
     id: `eta-${person.toLowerCase()}`,
     person,

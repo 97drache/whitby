@@ -33,6 +33,7 @@ function buildDocsMap(slots: UploadSlot[], documents: DocumentMeta[]) {
 }
 
 const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
+  passport: "여권 사본",
   eta: "eTA",
   eticket: "왕복 eTicket",
   hotel: "호텔 예약",
@@ -41,6 +42,7 @@ const CATEGORY_LABELS: Record<UploadSlot["category"], string> = {
 };
 
 const CATEGORY_ORDER: UploadSlot["category"][] = [
+  "passport",
   "eta",
   "eticket",
   "hotel",
