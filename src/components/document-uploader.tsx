@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import type { FamilyMemberKey, SharedDetails, UploadSlot } from "@/data/trip-data";
 import { familyMembers } from "@/data/trip-data";
@@ -64,6 +64,12 @@ export function DocumentUploader({
   const [docs, setDocs] = useState(() => buildDocsMap(slots, initialDocuments));
   const [details, setDetails] = useState(initialDetails);
   const [storage, setStorage] = useState<StorageInfoState | null>(initialStorage);
+
+  useEffect(() => {
+    void loadViewData();
+    // PIN 없이도 업로드된 최신 서류를 바로 보여 주기 위해 페이지 진입 시 한 번 불러옵니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only refresh
+  }, []);
 
   const stats = useMemo(() => {
     const uploaded = slots.filter((slot) => docs[slot.id]).length;
