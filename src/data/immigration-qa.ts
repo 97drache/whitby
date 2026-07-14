@@ -53,9 +53,9 @@ export const immigrationQA: ImmigrationQA[] = [
     questionKo: "누구와 함께 오셨나요?",
     questionEn: "Who are you traveling with?",
     answerKo:
-      "가족 4명입니다. Yongwoon, Miyoung, Yireh, Yiel입니다. (함께 도착하지 않더라도 같은 여행입니다.)",
+      "딸과 함께 왔습니다. 2주 뒤에 남편이 휴가로 오고, 귀국은 함께할 예정입니다.",
     answerEn:
-      "My family of four: Yongwoon, Miyoung, Yireh, and Yiel. We’re on the same trip.",
+      "I’m with my daughter. My husband will join us in two weeks for vacation, and we’ll return to Korea together.",
   },
   {
     id: "return",
@@ -83,10 +83,9 @@ export const immigrationQA: ImmigrationQA[] = [
     id: "job-home",
     questionKo: "한국에서 직업은 무엇인가요?",
     questionEn: "What do you do for work in Korea?",
-    answerKo:
-      "(본인 직업에 맞게 짧게) 예: “저는 ○○입니다. 휴가 후 한국으로 돌아갑니다.”",
+    answerKo: "저는 한국에서 음악 연주자입니다. 휴가 후에 한국으로 돌아갑니다.",
     answerEn:
-      "(Say your real job briefly.) Example: “I work as ____. I’ll return to Korea after this trip.”",
+      "I’m a musician / music performer in Korea. I’ll return to Korea after this vacation.",
   },
   {
     id: "cities",
@@ -109,9 +108,9 @@ export const immigrationQA: ImmigrationQA[] = [
     questionKo: "이전에 캐나다에 오신 적 있나요?",
     questionEn: "Have you visited Canada before?",
     answerKo:
-      "(사실대로) 예/아니요. 이번에 다시(또는 처음) 가족과 관광하러 왔습니다.",
+      "네, 예전에 공부를 위해 약 2년 동안 캐나다에 머문 적이 있습니다. 이번에는 관광으로 왔습니다.",
     answerEn:
-      "(Answer honestly.) Yes/No. This time I’m visiting again (or for the first time) with my family.",
+      "Yes. I lived in Canada before for about two years to study. This time I’m here for tourism.",
   },
   {
     id: "bring",
